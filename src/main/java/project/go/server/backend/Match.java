@@ -6,15 +6,11 @@ import java.util.NoSuchElementException;
 
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
+import project.go.server.common.json.StatusGameResponse;
+import project.go.applogic.Color;
 
 // Represents a match between two players
 public class Match implements Runnable {
-
-    public enum Color {
-        BLACK,
-        WHITE,
-        NONE
-    }
 
     public static class Data extends Client.Data {
         private String matchId;
@@ -101,7 +97,7 @@ public class Match implements Runnable {
 
             PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
             log("Closing connection to player " + client.data().getClientId() + " with status " + status);
-            out.println(JsonFmt.toJson(new GameResponse(status, message)));
+            out.println(JsonFmt.toJson(new StatusGameResponse(status, message)));
             client.getSocket().close();
             state.addState(MatchState.CLOSED_CONNECTION);
         } catch (Exception e) {

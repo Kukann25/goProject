@@ -5,24 +5,8 @@ import java.util.Scanner;
 import project.go.Config;
 
 public class Client {
-
-    public static class ServerCommandRunner implements Runnable {
-        private ServerCommand command;
-        private ClientConn connection;
-
-        public ServerCommandRunner(ServerCommand comm, ClientConn connection) {
-            this.command = comm;
-            this.connection = connection;
-        }
-
-        @Override
-        public void run() {
-             command.execute(connection);
-        }
-    }
-
     private ClientConn connection;
-    private Thread commandThread;
+    private Thread listenerThread;
     private ClientState clientState;
 
     public Client() {
@@ -35,12 +19,14 @@ public class Client {
     }
 
     public void run() {
+        listenerThread = new Thread(new ClientListener(clientState, connection));
+        listenerThread.start();
+
         SyncPrinter.println("GoProject\n");
         Scanner scanner = new Scanner(System.in);
 
         while(clientState.isRunning()) {
             String line = scanner.nextLine();
-
             String[] parts = line.split(" ");
             String commandName = parts[0];
             String[] args = null;
@@ -51,13 +37,10 @@ public class Client {
             }
 
             if (CommandMatcher.isLocalCommand(commandName)) {
-                handleLocal(commandName, args);
+                CommandMatcher.getLocalCommand(commandName, args).execute(clientState);
                 continue;
             } else if (CommandMatcher.isServerCommand(commandName)) {
-                commandThread = new Thread(
-                    new ServerCommandRunner(
-                        CommandMatcher.getServerCommand(commandName, args), connection));
-                commandThread.start();
+                CommandMatcher.getServerCommand(commandName, args).execute(connection);
             } else {
                 SyncPrinter.error("Unknown command: " + commandName);
                 SyncPrinter.detail("Type 'help' to see the list of available commands.");
@@ -68,24 +51,8 @@ public class Client {
         connection.close();
         scanner.close();
 
-        if (commandThread != null && commandThread.isAlive()) {
-            try {
-                commandThread.interrupt();
-                commandThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
         SyncPrinter.detail("Client terminated.");
     }
 
-    private void handleLocal(String commandName, String[] args) {
-        LocalCommand localCommand = CommandMatcher.getLocalCommand(commandName, args);
-        if (localCommand != null) {
-            localCommand.execute(clientState);
-        } else {
-            SyncPrinter.error("Failed to execute local command: " + commandName);
-        }
-    }
+    
 }

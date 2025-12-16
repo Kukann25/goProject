@@ -12,12 +12,18 @@ public class App
     public static void main( String[] args )
     {
         if (args.length != 1) {
+            System.out.println("Args required: [server|client]");
+            return;
+        }
+
+
         if (args[0].equals("server")) {
            try {
                 Server server = new Server();
                 server.start();
             } catch (Exception e) {
                 e.printStackTrace();
+            }
         } else if (args[0].equals("client")) {
             Client client = new Client();
             client.run();

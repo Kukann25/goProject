@@ -77,12 +77,12 @@ public class Client implements Runnable {
             setState(State.WAITING);
 
             // wait for a match to be assigned
-            while(isWaitingForMatch()) {
-                // Waiting for a match
+            while(isWaitingForMatch() && (clientData.getSocket().isConnected())) {
                 Thread.yield();
             }
 
             // Joined a match, further handling will be done in Match class
+
         } catch (Exception e) {
             e.printStackTrace();
             close();

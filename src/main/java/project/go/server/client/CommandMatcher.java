@@ -2,6 +2,7 @@ package project.go.server.client;
 
 import project.go.server.client.commands.local.Exit;
 import project.go.server.client.commands.local.Help;
+import project.go.server.client.commands.server.Disconnect;
 import project.go.server.client.commands.server.JoinMatch;
 import project.go.server.client.commands.server.MakeMove;
 
@@ -35,6 +36,8 @@ public final class CommandMatcher {
                 return new JoinMatch(args);
             case MAKE_MOVE:
                 return new MakeMove(args);
+            case DISCONNECT:
+                return new Disconnect(args);
             default:
                 return null;
         }

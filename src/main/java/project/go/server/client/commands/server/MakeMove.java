@@ -17,7 +17,7 @@ public class MakeMove extends BaseCommand implements ServerCommand {
     public void execute(ClientConn connData) {
         try {
             // The move should be in args[0] as "xxYY" where xx is the x coordinate and YY is the y coordinate
-            if (args.length != 1) {
+            if (args == null || args.length != 1) {
                 SyncPrinter.detail("Usage: makemove <xx><yy>");
                 return;
             }
@@ -29,15 +29,6 @@ public class MakeMove extends BaseCommand implements ServerCommand {
             // Send the move to the server
             String jsonCommand = JsonFmt.toJson(moveCommand);
             connData.send(jsonCommand);
-
-            // Get the server response
-            String response = connData.receive();
-            GameResponse gameResp = JsonFmt.fromJson(response, GameResponse.class);
-            if (gameResp.isError()) {
-                SyncPrinter.error("Error from server: " + gameResp.getMessage());
-            } else {
-                SyncPrinter.success("Move accepted");
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -21,7 +21,8 @@ public class ClientPool {
             client.run();
 
             // After client closes, remove it from the pool
-            if (client.getClientData().getSocket().isClosed() && !clientPool.isShutdown()) {
+            if (!client.getClientData().getSocket().isConnected() && !clientPool.isShutdown()) {
+                Logger.getInstance().log("ClientPool", "Removing client " + client.getClientData().getClientId());
                 clientPool.removeClient(client.getClientData().getClientId());
             }
         }

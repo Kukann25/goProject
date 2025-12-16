@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 import project.go.Config;
-import project.go.server.backend.Logger;
 
 public class MockClient {
 

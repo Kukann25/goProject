@@ -5,19 +5,20 @@ import java.io.PrintWriter;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+import project.go.applogic.Color;
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
+import project.go.server.common.json.StatusGameResponse;
 import project.go.server.common.json.JsonFmt;
-import project.go.server.common.json.PlayerTurn;
 
 public class MatchLogic {
     private Scanner in;
     private PrintWriter out;
     private Match.Data client;
     private SharedMatchLogicState sharedState;
-    private Match.Color color;
+    private Color color;
 
-    public MatchLogic(Match.Data client, Match.Color color, SharedMatchLogicState state) throws IOException {
+    public MatchLogic(Match.Data client, Color color, SharedMatchLogicState state) throws IOException {
         this.client = client;
         this.in = new Scanner(client.getSocket().getInputStream());
         this.out = new PrintWriter(client.getSocket().getOutputStream(), true);
@@ -25,7 +26,12 @@ public class MatchLogic {
         this.sharedState = state;
 
         // Notify player of their color
-        out.println(JsonFmt.toJson(new PlayerTurn(color == Match.Color.BLACK)));
+        out.println(JsonFmt.toJson(
+            new GameResponse<GameResponse.PlayerTurn>(
+                GameResponse.STATUS_OK,
+                GameResponse.TYPE_PLAYER_TURN, 
+                "Assigned player color", 
+                new GameResponse.PlayerTurn(color))));
     }
 
     private void log(String msg) {
@@ -48,10 +54,16 @@ public class MatchLogic {
         String otherPlayerMove = sharedState.popEnemyMove(color);
         if (otherPlayerMove != null) {
             log("Notifying player " + client.data().getClientId() + " of opponent's move: " + otherPlayerMove);
-            out.println(JsonFmt.toJson(new GameCommand.PayloadMakeMove(otherPlayerMove)));
+            out.println(JsonFmt.toJson(new GameResponse<GameResponse.BoardUpdate>(
+                GameResponse.STATUS_OK,
+                GameResponse.TYPE_BOARD_UPDATE,
+                "Opponent played a move",
+                new GameResponse.BoardUpdate(otherPlayerMove)
+            )));
         }
 
-        if (!in.hasNextLine()) {
+        // Non-blocking check for input
+        if (client.getSocket().getInputStream().available() == 0) {
             return;
         }
 
@@ -63,27 +75,32 @@ public class MatchLogic {
 
         if (payload instanceof GameCommand.PayloadMakeMove) {
             out.println(JsonFmt.toJson(processMove((GameCommand.PayloadMakeMove) payload)));
+            return;
         }
 
         log("Unknown command from player " + client.data().getClientId() + ": " + command.getCommand());
-        out.println(JsonFmt.toJson(new GameResponse(GameResponse.STATUS_ERROR, GameResponse.MESSAGE_UNKNOWN_COMMAND)));
+        out.println(JsonFmt.toJson(new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_UNKNOWN_COMMAND)));
     }
 
     /**
      * Processes a move command from a player.
      * @param client
      * @param payload
-     * @return GameResponse indicating success or failure of the move.
+     * @return StatusGameResponse indicating success or failure of the move.
      */
-    private GameResponse processMove(GameCommand.PayloadMakeMove payload) {
+    private GameResponse<?> processMove(GameCommand.PayloadMakeMove payload) {
         try {
             // Validate and apply the move using shared state
-            sharedState.setMove(payload.getMove(), color);
+            sharedState.makeMove(payload.getMove(), color);
             log("Player " + client.data().getClientId() + " played move: " + payload.getMove());
-            return new GameResponse(GameResponse.STATUS_OK, GameResponse.MESSAGE_MOVE_OK);
+            return new GameResponse<GameResponse.BoardUpdate>(
+                StatusGameResponse.STATUS_OK,
+                GameResponse.TYPE_VALID_MOVE,
+                StatusGameResponse.MESSAGE_MOVE_OK,
+                new GameResponse.BoardUpdate(payload.getMove()));
         }  catch (IllegalArgumentException e) {
             log("Illegal move from player " + client.data().getClientId() + ": " + e.getMessage());
-            return new GameResponse(GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INVALID_MOVE);
+            return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_INVALID_MOVE);
         }
     }
 }

@@ -9,7 +9,6 @@ import project.go.server.common.json.Connection;
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
-import project.go.server.common.json.PlayerTurn;
 
 public class ServerTest {
 
@@ -67,7 +66,7 @@ public class ServerTest {
         Server server;
         try {
             // Pass LEVEL_ALL to see verbose server logs
-            server = new Server(Logger.LEVEL_ALL, port);
+            server = new Server(Logger.LEVEL_ERROR, port);
             server.async();
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,10 +104,17 @@ public class ServerTest {
                 fail("One of the clients did not receive side assignment");
             }
 
-            PlayerTurn pt1 = JsonFmt.fromJson(side2, PlayerTurn.class);
-            PlayerTurn pt2 = JsonFmt.fromJson(side1, PlayerTurn.class);
+            GameResponse<?> pt1 = JsonFmt.fromJson(side2, GameResponse.class);
+            GameResponse<?> pt2 = JsonFmt.fromJson(side1, GameResponse.class);
             
-            if (pt1.getSide().equals(pt2.getSide())) {
+            if (!(pt1.getData() instanceof GameResponse.PlayerTurn) || !(pt2.getData() instanceof GameResponse.PlayerTurn)) {
+                fail("One of the clients received invalid side assignment data");
+            }
+
+            GameResponse.PlayerTurn playerTurn1 = (GameResponse.PlayerTurn) pt1.getData();
+            GameResponse.PlayerTurn playerTurn2 = (GameResponse.PlayerTurn) pt2.getData();
+
+            if (playerTurn1.getColor().equals(playerTurn2.getColor())) {
                 fail("Both clients received the same side assignment");
             }
 
@@ -116,6 +122,7 @@ public class ServerTest {
             client2.close();
             server.stop();
         } catch (Exception e) {
+            System.out.println(e.getMessage());
             e.printStackTrace();
             fail("MockClients failed during match making test");
         }
@@ -130,8 +137,6 @@ public class ServerTest {
      * and get non-blocking responses (not waiting for their turn).
      * d) At least one move from either client is accepted by the server.
      */
-
-    /*
     @Test
     public void testMatchPlay() {
         int port = Config.PORT + 2;
@@ -178,21 +183,32 @@ public class ServerTest {
 
             client2.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
                 GameCommand.COMMAND_MAKE_MOVE, cl2Id, new GameCommand.PayloadMakeMove("0202"))));
+            String movenotify = client2.receive();
             String resp2 = client2.receive();
             log("Client2 move response: " + resp2);
 
             // Parse responses to ensure at least one move was accepted
-            GameResponse gr1 = JsonFmt.fromJson(resp1, GameResponse.class);
-            GameResponse gr2 = JsonFmt.fromJson(resp2, GameResponse.class);
-            GameResponse grIllegal = JsonFmt.fromJson(respIllegal, GameResponse.class);
+            GameResponse<?> notify = JsonFmt.fromJson(movenotify, GameResponse.class);
+            GameResponse<?> gr1 = JsonFmt.fromJson(resp1, GameResponse.class);
+            GameResponse<?> gr2 = JsonFmt.fromJson(resp2, GameResponse.class);
+            GameResponse<?> grIllegal = JsonFmt.fromJson(respIllegal, GameResponse.class);
 
             if (gr1.isError() && gr2.isError()) {
                 fail("Both clients' moves were rejected");
             }
 
-            /*if (!grIllegal.isError()) {
+            if (!(gr1.getData() instanceof GameResponse.BoardUpdate) ||
+                 !(gr2.getData() instanceof GameResponse.BoardUpdate)) {
+                fail("No valid move data received from either client");
+            }
+
+            if (!grIllegal.isError()) {
                 fail("Illegal move was accepted by the server");
-            }*/
+            }
+
+            if (notify.isError() || (!(notify.getData() instanceof GameResponse.BoardUpdate))) {
+                fail("Move notification to opponent failed");
+            }
 
             client1.close();
             client2.close();
@@ -203,5 +219,4 @@ public class ServerTest {
             fail("MockClients failed during match play test: " + e.getMessage());
         }
     }
-    */
 }

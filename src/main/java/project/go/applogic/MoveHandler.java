@@ -27,6 +27,8 @@ public class MoveHandler{
     }
 
     public boolean makeMove(SingleMove singleMove, Color side){
+        if (side != board.getCurrentTurn()) { return false; }
+
         Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
         int x=singleMove.getX();
         int y=singleMove.getY();
@@ -46,6 +48,7 @@ public class MoveHandler{
                     if(!hasBreaths(x, y-1, opponent)&&isValid(x, y-1)){
                         board.returnCurrentState()[x][y-1]=Color.NONE;
                     }
+                    board.switchTurn();
                     return true;
                 }
             }

@@ -1,12 +1,14 @@
-package project.go.server.client.commands;
+package project.go.server.client.commands.server;
 
 import project.go.server.common.json.JsonFmt;
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 import project.go.server.client.BaseCommand;
 import project.go.server.client.ClientConn;
+import project.go.server.client.ServerCommand;
+import project.go.server.client.SyncPrinter;
 
-public class MakeMove extends BaseCommand {
+public class MakeMove extends BaseCommand implements ServerCommand {
     public MakeMove(String[] args) {
         super(args);
     }
@@ -16,7 +18,7 @@ public class MakeMove extends BaseCommand {
         try {
             // The move should be in args[0] as "xxYY" where xx is the x coordinate and YY is the y coordinate
             if (args.length != 1) {
-                System.out.println("Usage: makemove <x><y>");
+                SyncPrinter.detail("Usage: makemove <xx><yy>");
                 return;
             }
 
@@ -32,9 +34,9 @@ public class MakeMove extends BaseCommand {
             String response = connData.receive();
             GameResponse gameResp = JsonFmt.fromJson(response, GameResponse.class);
             if (gameResp.isError()) {
-                System.out.println("Error from server: " + gameResp.getMessage());
+                SyncPrinter.error("Error from server: " + gameResp.getMessage());
             } else {
-                System.out.println("Move accepted");
+                SyncPrinter.success("Move accepted");
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-import project.go.server.backend.Logger;
 import project.go.server.common.json.Connection;
 
 public class ClientConn {
@@ -45,7 +44,7 @@ public class ClientConn {
      * Logs a message with the global Logger.
      */
     private static void log(String message) {
-        Logger.getInstance().log("MockClient", message);
+        SyncPrinter.detail(message);
     }
 
     /**

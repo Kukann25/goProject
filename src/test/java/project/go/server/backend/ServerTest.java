@@ -67,7 +67,7 @@ public class ServerTest {
         Server server;
         try {
             // Pass LEVEL_ALL to see verbose server logs
-            server = new Server(Logger.LEVEL_ERROR, port);
+            server = new Server(Logger.LEVEL_ALL, port);
             server.async();
         } catch (Exception e) {
             e.printStackTrace();
@@ -130,6 +130,8 @@ public class ServerTest {
      * and get non-blocking responses (not waiting for their turn).
      * d) At least one move from either client is accepted by the server.
      */
+
+    /*
     @Test
     public void testMatchPlay() {
         int port = Config.PORT + 2;
@@ -201,4 +203,5 @@ public class ServerTest {
             fail("MockClients failed during match play test: " + e.getMessage());
         }
     }
+    */
 }

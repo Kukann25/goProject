@@ -1,5 +1,5 @@
 package project.go.server.client;
 
-public interface CommandLike {
+public interface ServerCommand {
     void execute(ClientConn connData);
 }

@@ -8,24 +8,24 @@ import project.go.server.common.json.*;
 public class Client implements Runnable {
 
     static public class Data {
-        private Socket connection;
+        private Socket socket;
         private String clientId;
 
         /**
          * Initializes ClientData with the given socket.
-         * @param connection The socket connected to the client.
+         * @param socket The socket connected to the client.
          */
-        public Data(final Socket connection) {
-            this.connection = connection;
+        public Data(final Socket socket) {
+            this.socket = socket;
             this.clientId = java.util.UUID.randomUUID().toString();
         }
 
         /**
-         * Gets the socket connection.
+         * Gets the socket socket.
          * @return The socket connected to the client.
          */
-        public Socket getConnection() {
-            return connection;
+        public Socket getSocket() {
+            return socket;
         }
 
         /**
@@ -69,7 +69,7 @@ public class Client implements Runnable {
     public void run() {
         // A client has connected
         try {
-            out = new PrintWriter(clientData.getConnection().getOutputStream(), true);
+            out = new PrintWriter(clientData.getSocket().getOutputStream(), true);
             
             // Send the player id
             String json = JsonFmt.toJson(clientData.data());
@@ -94,7 +94,7 @@ public class Client implements Runnable {
      */
     final public void close() {
         try {
-            clientData.getConnection().close();
+            clientData.getSocket().close();
         } catch (Exception e) {
             e.printStackTrace();
         }

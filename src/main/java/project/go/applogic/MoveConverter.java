@@ -4,7 +4,7 @@ import project.go.server.backend.Logger;
 
 public abstract class MoveConverter {
 
-    public String toJSON(SingleMove singleMove){
+    public static String toJSON(SingleMove singleMove){
         StringBuilder stringBuilder = new StringBuilder();
 
         try{
@@ -33,7 +33,7 @@ public abstract class MoveConverter {
         return "";
     }
 
-    public SingleMove fromJSON(String input){
+    public static SingleMove fromJSON(String input){
         int x=0;
         int y=0;
 

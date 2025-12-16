@@ -19,11 +19,6 @@ public class App
                 e.printStackTrace();
             }
         } else if (args.length > 0 && args[0].equals("client")) {
-            try {
-                Client client = new Client();
-                client
-            } catch (Exception e) {
-            }
         } else {
             System.out.println("Please specify 'server' or 'client' as an argument.");
         }

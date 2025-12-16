@@ -1,8 +1,8 @@
 package project.go.applogic;
 
 public class SingleMove {
-    private final int x;
-    private final int y;
+    private int x;
+    private int y;
 
     public SingleMove(int x, int y){
         this.x=x;
@@ -15,5 +15,13 @@ public class SingleMove {
 
     public int getY(){
         return y;
+    }
+
+    public void setX(int x){
+        this.x=x;
+    }
+
+    public void setY(int y){
+        this.y=y;
     }
 }

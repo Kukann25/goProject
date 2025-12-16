@@ -6,6 +6,27 @@ import java.util.concurrent.ExecutorService;
 import project.go.Config;
 
 public class ClientPool {
+
+    static private class ClientRunWrapper implements Runnable {
+        private final Client client;
+        private final ClientPool clientPool;
+
+        public ClientRunWrapper(Client client, ClientPool clientPool) {
+            this.client = client;
+            this.clientPool = clientPool;
+        }
+
+        @Override
+        public void run() {
+            client.run();
+
+            // After client closes, remove it from the pool
+            if (client.getClientData().getSocket().isClosed() && !clientPool.isShutdown()) {
+                clientPool.removeClient(client.getClientData().getClientId());
+            }
+        }
+    }
+
     private final HashMap<String, Client> clients;
     private final ExecutorService clientPool;
     private boolean isRunning = true;
@@ -18,18 +39,18 @@ public class ClientPool {
     /**
      * Adds a new client to the pool and starts its handler.
      */
-    synchronized public void addClient(final Client client) {
+    synchronized public void addClient(final Client client) throws IllegalStateException {
         if (!isRunning) {
             throw new IllegalStateException("ClientPool is not running");
         }
         clients.put(client.getClientData().getClientId(), client);
-        clientPool.execute(client);
+        clientPool.execute(new ClientRunWrapper(client, this));
     }
 
     /**
      * Removes a client from the pool by clientId.
      */
-    synchronized public void removeClient(final String clientId) {
+    synchronized public void removeClient(final String clientId) throws IllegalStateException {
         if (!isRunning) {
             throw new IllegalStateException("ClientPool is not running");
         }

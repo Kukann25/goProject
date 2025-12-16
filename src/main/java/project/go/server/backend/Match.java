@@ -3,18 +3,18 @@ package project.go.server.backend;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.NoSuchElementException;
-import java.util.Scanner;
 
-import project.go.applogic.Board;
-import project.go.applogic.Color;
-import project.go.applogic.MoveHandler;
-import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
-import project.go.server.common.json.PlayerTurn;
 
 // Represents a match between two players
 public class Match implements Runnable {
+
+    public enum Color {
+        BLACK,
+        WHITE,
+        NONE
+    }
 
     public static class Data extends Client.Data {
         private String matchId;
@@ -25,7 +25,7 @@ public class Match implements Runnable {
         }
 
         public Data(final Client.Data base, Color side, final String matchId) {
-            super(base.getConnection());
+            super(base.getSocket());
             this.side = side;
             this.matchId = matchId;
         }
@@ -37,101 +37,13 @@ public class Match implements Runnable {
     }
 
 
-    private static class GameThread extends Thread {
-        private Match parent;
-        private Data data;
-        private PrintWriter out;
-        private Scanner in;
-        private MoveHandler moveHandler;
-
-        public GameThread(Match parent, Data data, PrintWriter out, Scanner in, Board board) {
-            this.parent = parent;
-            this.data = data;
-            this.out = out;
-            this.in = in;
-            this.moveHandler=new MoveHandler(board);
-        }
-
-        private void log(String msg) {
-            Logger.getInstance().log("Match-" + parent.matchId, msg);
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (true) {
-                    out.println(JsonFmt.toJson(handleInput(data, in)));
-                }
-            } catch (Exception e) {
-                // Only log if not caused by input closure
-                if (!(e instanceof NoSuchElementException)) {
-                    e.printStackTrace();
-                }
-                parent.childException = e;
-                parent.matchThread.interrupt();
-            }
-        }
-
-        /**
-         * Handles input from a player client.
-         * @param client The client data.
-         * @param in The input scanner for the client.
-         * @return GameResponse indicating the result of the command.
-         * @throws Exception Internal error processing the command.
-         * @throws NoSuchElementException If the input is closed.
-         */
-        private GameResponse handleInput(Data client, Scanner in) throws Exception, NoSuchElementException {
-            // Should be either move or resign command
-            String line = in.nextLine();
-            GameCommand<?> 
-                command = JsonFmt.fromJson(line, GameCommand.class);
-            Object payload = command.getPayload();
-
-            if (payload instanceof GameCommand.PayloadMakeMove) {
-                return processMove(client, (GameCommand.PayloadMakeMove)payload);
-            }
-
-            log("Unknown command from player " + client.data().getClientId() + ": " + command.getCommand());
-            return new GameResponse(GameResponse.STATUS_ERROR, GameResponse.MESSAGE_UNKNOWN_COMMAND);
-        }
-
-        /**
-         * Processes a move command from a player.
-         * @param client
-         * @param payload
-         * @return GameResponse indicating success or failure of the move.
-         */
-        private GameResponse processMove(Data client, GameCommand.PayloadMakeMove payload) {
-            try {
-                log("Player " + client.data().getClientId() + " played move: " + payload.getMove());
-                return new GameResponse(GameResponse.STATUS_OK, GameResponse.MESSAGE_MOVE_OK);
-            }  catch (IllegalArgumentException e) {
-                log("Illegal move from player " + client.data().getClientId() + ": " + e.getMessage());
-                return new GameResponse(GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INVALID_MOVE);
-            }
-        }
-    }
-
-    private Thread matchThread;
     private Data black;
     private Data white;
-    volatile private Exception childException;
     private final String matchId;
-    private int state;
-    private GameThread blackThread;
-    private GameThread whiteThread;
-    private Board board;
-
-    // Possible states of a match,
-    // Note that once a match is COMPLETED or ABORTED
-    // it should be cleaned up by MatchManager
-    public static final int ONGOING = 0;
-    public static final int COMPLETED = 1;
-    public static final int ABORTED = 2;
-    public static final int CLOSED_CONNECTION = 4;
+    private MatchState state;
 
     public Match(Client.Data cl1, Client.Data cl2) {
-        this.state = ONGOING;
+        this.state = new MatchState();
         this.matchId = java.util.UUID.randomUUID().toString();
         // this.board = new ExtBoard(Config.DEFAULT_BOARD_SIZE); // Standard 19x19 board
 
@@ -145,49 +57,31 @@ public class Match implements Runnable {
 
     @Override
     public void run() {
-        this.state = ONGOING;
-        matchThread = Thread.currentThread();
 
         // Run the match until completion
         try {
-            PrintWriter blackOut = new PrintWriter(black.getConnection().getOutputStream(), true);
-            Scanner blackIn = new Scanner(black.getConnection().getInputStream());
+            SharedMatchLogicState sharedState = new SharedMatchLogicState();
 
-            PrintWriter whiteOut = new PrintWriter(white.getConnection().getOutputStream(), true);
-            Scanner whiteIn = new Scanner(white.getConnection().getInputStream());
-
-            // Notify players of match start
-            blackOut.println(JsonFmt.toJson(new PlayerTurn(false)));
-            whiteOut.println(JsonFmt.toJson(new PlayerTurn(true)));
-            
             // Support async input reading to disallow blocking
             // (Always respond to both players even if it's not their turn)
-            blackThread = new GameThread(this, black, blackOut, blackIn, board);
-            whiteThread = new GameThread(this, white, whiteOut, whiteIn, board);           
+            MatchLogic blackLogic = new MatchLogic(black, Color.BLACK, sharedState);
+            MatchLogic whiteLogic = new MatchLogic(white, Color.WHITE, sharedState);
 
-            blackThread.start();
-            whiteThread.start();
-
-            try {
-                blackThread.join();
-                whiteThread.join();
-            } catch (InterruptedException ie) {
-                // Interrupted - likely due to error in child thread
-                if (childException != null) {
-                    throw childException;
-                }
+            while (this.state.isOngoing()) {
+                blackLogic.handleInput();
+                whiteLogic.handleInput();
             }
 
         } catch(NoSuchElementException e) {
             // Thrown by Scanner when input is closed
             log("A player disconnected: " + e.getMessage());
-            this.state = ABORTED;
+            this.state.setState(MatchState.ABORTED);
         } catch (Exception e) {
             // Other exceptions - internal errors
             e.printStackTrace();
-            this.state = ABORTED;
+            this.state.setState(MatchState.ABORTED);
         } finally {
-            if ((this.state & ABORTED) != 0) {
+            if (this.state.isAborted()) {
                 close(black, GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INTERNAL_ERROR);
                 close(white, GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INTERNAL_ERROR);
             } else {
@@ -203,39 +97,20 @@ public class Match implements Runnable {
      */
     private void close(Data client, int status, String message) {
         try {
-            if (client.getConnection().isClosed()) return;
+            if (client.getSocket().isClosed()) return;
 
-            PrintWriter out = new PrintWriter(client.getConnection().getOutputStream(), true);
+            PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
             log("Closing connection to player " + client.data().getClientId() + " with status " + status);
             out.println(JsonFmt.toJson(new GameResponse(status, message)));
-            client.getConnection().close();
-            this.state |= CLOSED_CONNECTION;
-
-            if (blackThread != null && blackThread.isAlive()) {
-                blackThread.interrupt();
-            }
-            if (whiteThread != null && whiteThread.isAlive()) {
-                whiteThread.interrupt();
-            }
+            client.getSocket().close();
+            state.addState(MatchState.CLOSED_CONNECTION);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    synchronized public int getState() {
-        return state;
-    }
-
-    synchronized public boolean isCompleted() {
-        return (state & COMPLETED) == COMPLETED;
-    }
-
-    synchronized public boolean isAborted() {
-        return (state & ABORTED) == ABORTED;
-    }
-
-    synchronized public boolean isClosed() {
-        return (state & CLOSED_CONNECTION) == CLOSED_CONNECTION;
+    public boolean isClosed() {
+        return this.state.isClosed();
     }
 
     public String getMatchId() {

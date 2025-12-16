@@ -1,9 +1,11 @@
 package project.go.applogic;
 
+import project.go.Config;
+
 public class Board {
 
-    public Color[][] grid;
-    private int boardSize=19;
+    private Color[][] grid;
+    private int boardSize=Config.DEFAULT_BOARD_SIZE;
 
     public Board(int boardSize){
         this.boardSize=boardSize;
@@ -18,6 +20,10 @@ public class Board {
 
     public int getSize(){
         return boardSize;
+    }
+
+    public Color[][] returnCurrentState(){
+        return grid;
     }
 
 }

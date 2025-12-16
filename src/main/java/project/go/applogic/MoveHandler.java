@@ -11,10 +11,10 @@ public class MoveHandler{
     public boolean hasBreaths(int x, int y, Color side) {
         Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
         
-        if (isValid(x-1, y)&&board.grid[x-1][y]!=opponent) return true;
-        if (isValid(x+1, y)&&board.grid[x+1][y]!=opponent) return true;
-        if (isValid(x, y-1)&&board.grid[x][y-1]!=opponent) return true;
-        if (isValid(x, y+1)&&board.grid[x][y+1]!=opponent) return true;
+        if (isValid(x-1, y)&&board.returnCurrentState()[x-1][y]!=opponent) return true;
+        if (isValid(x+1, y)&&board.returnCurrentState()[x+1][y]!=opponent) return true;
+        if (isValid(x, y-1)&&board.returnCurrentState()[x][y-1]!=opponent) return true;
+        if (isValid(x, y+1)&&board.returnCurrentState()[x][y+1]!=opponent) return true;
         
         return false;
     }
@@ -26,23 +26,25 @@ public class MoveHandler{
         return true;
     }
 
-    public boolean makeMove(int x, int y, Color side){
+    public boolean makeMove(SingleMove singleMove, Color side){
         Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
+        int x=singleMove.getX();
+        int y=singleMove.getY();
         if(isValid(x, y)){
-            if(board.grid[x][y]==Color.NONE){
+            if(board.returnCurrentState()[x][y]==Color.NONE){
                 if(hasBreaths(x, y, side)){
-                    board.grid[x][y]=side;
+                    board.returnCurrentState()[x][y]=side;
                     if(!hasBreaths(x+1, y, opponent)&&isValid(x+1, y)){
-                        board.grid[x+1][y]=Color.NONE;
+                        board.returnCurrentState()[x+1][y]=Color.NONE;
                     }
                     if(!hasBreaths(x-1, y, opponent)&&isValid(x-1, y)){
-                        board.grid[x-1][y]=Color.NONE;
+                        board.returnCurrentState()[x-1][y]=Color.NONE;
                     }
                     if(!hasBreaths(x, y+1, opponent)&&isValid(x, y+1)){
-                        board.grid[x][y+1]=Color.NONE;
+                        board.returnCurrentState()[x][y+1]=Color.NONE;
                     }
                     if(!hasBreaths(x, y-1, opponent)&&isValid(x, y-1)){
-                        board.grid[x][y-1]=Color.NONE;
+                        board.returnCurrentState()[x][y-1]=Color.NONE;
                     }
                     return true;
                 }

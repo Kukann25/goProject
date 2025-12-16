@@ -1,20 +1,20 @@
 package project.go.server.backend;
 
-import project.go.server.common.json.*;
-
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+import project.go.applogic.Board;
+import project.go.applogic.Color;
+import project.go.applogic.MoveHandler;
+import project.go.server.common.json.GameCommand;
+import project.go.server.common.json.GameResponse;
+import project.go.server.common.json.JsonFmt;
+import project.go.server.common.json.PlayerTurn;
+
 // Represents a match between two players
 public class Match implements Runnable {
-
-    private enum Color {
-        BLACK,
-        WHITE,
-        NONE
-    }
 
     public static class Data extends Client.Data {
         private String matchId;
@@ -42,12 +42,14 @@ public class Match implements Runnable {
         private Data data;
         private PrintWriter out;
         private Scanner in;
+        private MoveHandler moveHandler;
 
-        public GameThread(Match parent, Data data, PrintWriter out, Scanner in) {
+        public GameThread(Match parent, Data data, PrintWriter out, Scanner in, Board board) {
             this.parent = parent;
             this.data = data;
             this.out = out;
             this.in = in;
+            this.moveHandler=new MoveHandler(board);
         }
 
         private void log(String msg) {
@@ -118,6 +120,7 @@ public class Match implements Runnable {
     private int state;
     private GameThread blackThread;
     private GameThread whiteThread;
+    private Board board;
 
     // Possible states of a match,
     // Note that once a match is COMPLETED or ABORTED
@@ -159,8 +162,8 @@ public class Match implements Runnable {
             
             // Support async input reading to disallow blocking
             // (Always respond to both players even if it's not their turn)
-            blackThread = new GameThread(this, black, blackOut, blackIn);
-            whiteThread = new GameThread(this, white, whiteOut, whiteIn);           
+            blackThread = new GameThread(this, black, blackOut, blackIn, board);
+            whiteThread = new GameThread(this, white, whiteOut, whiteIn, board);           
 
             blackThread.start();
             whiteThread.start();

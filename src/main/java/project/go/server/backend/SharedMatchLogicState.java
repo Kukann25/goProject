@@ -1,0 +1,62 @@
+package project.go.server.backend;
+
+import project.go.Config;
+import project.go.applogic.Board;
+import project.go.applogic.Color;
+import project.go.applogic.MoveConverter;
+import project.go.applogic.MoveHandler;
+import project.go.applogic.SingleMove;
+
+/**
+ * Shared state between match logic instances (for both players).
+ */
+public class SharedMatchLogicState {
+    private Board board = new Board(Config.DEFAULT_BOARD_SIZE);
+    private MoveHandler moveHandler;
+    private MatchState matchState = new MatchState();
+    private String blackMove = null;
+    private String whiteMove = null;
+
+    public SharedMatchLogicState() {
+        this.moveHandler = new MoveHandler(board);
+    }
+    
+    public MatchState getMatchState() {
+        return matchState;
+    }
+
+    public void makeMove(String move, Color color) throws IllegalArgumentException {
+        SingleMove sm = MoveConverter.fromJSON(move);
+        // Invalid move
+        if (sm.getX() == -1 && sm.getY() == -1) {
+            throw new IllegalArgumentException("Pass move is not supported yet");
+        }
+
+        if (!moveHandler.makeMove(sm, color)) {
+            throw new IllegalArgumentException("Invalid move: " + move);
+        }
+
+        // Move accepted
+        if (color == Color.BLACK) {
+            this.blackMove = move;
+        } else if (color == Color.WHITE) {
+            this.whiteMove = move;
+        }
+    }
+
+    public String popEnemyMove(Color color) {
+        String move = null;
+        if (color == Color.BLACK) {
+            move = this.whiteMove;
+            this.whiteMove = null;
+        } else if (color == Color.WHITE) {
+            move = this.blackMove;
+            this.blackMove = null;
+        }
+        return move;
+    }
+
+    public Board getBoard() {
+        return board;
+    }
+}

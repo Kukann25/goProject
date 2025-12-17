@@ -64,7 +64,7 @@ public class Server {
             while (isRunning) {
                 Socket clientSocket = serverSocket.accept();
                 log("New client connected: " + clientSocket.getRemoteSocketAddress());
-                clientPool.addClient(new Client(clientSocket));
+                clientPool.addClient(new ConnectedClient(clientSocket));
             }
         } catch(SocketException se) {
             if (isRunning) {

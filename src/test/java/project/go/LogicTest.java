@@ -26,7 +26,6 @@ public class LogicTest {
         Board board = new Board(19);
         MoveHandler moveHandler = new MoveHandler(board);
         moveHandler.makeMove(new SingleMove(1, 0), black);
-        moveHandler.makeMove(new SingleMove(0, 1), black);
         assertFalse(moveHandler.makeMove(new SingleMove(0, 0), white));
         moveHandler.makeMove(new SingleMove(10, 10), black);
         moveHandler.makeMove(new SingleMove(9, 10), white);

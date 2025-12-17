@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 import project.go.Config;
+import project.go.applogic.Color;
 import project.go.server.common.json.Connection;
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
@@ -167,24 +168,40 @@ public class ServerTest {
             log("Client1 side: " + side1);
             log("Client2 side: " + side2);
 
+            GameResponse<?> pt1 = JsonFmt.fromJson(side1, GameResponse.class);
+            GameResponse<?> pt2 = JsonFmt.fromJson(side2, GameResponse.class);
+
+            if (!(pt1.getData() instanceof GameResponse.PlayerTurn) || !(pt2.getData() instanceof GameResponse.PlayerTurn)) {
+                fail("One of the clients received invalid side assignment data");
+            }
+
+            MockClient white = client1;
+            MockClient black = client2;
+
+            if (((GameResponse.PlayerTurn)pt1.getData()).getColor() == Color.BLACK) {
+                black = client1;
+                white = client2;
+            }
+
+
             // Simulate a few moves
-            client1.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
+            black.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
                 GameCommand.COMMAND_MAKE_MOVE, cl1Id, new GameCommand.PayloadMakeMove("0101"))));
             
-            String resp1 = client1.receive();
+            String resp1 = black.receive();
             log("Client1 move response: " + resp1);
 
             // Illegal move
-            client1.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
+            black.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
                 GameCommand.COMMAND_MAKE_MOVE, cl1Id, new GameCommand.PayloadMakeMove("0101"))));
 
-            String respIllegal = client1.receive();
+            String respIllegal = black.receive();
             log("Client1 illegal move response: " + respIllegal);
 
-            client2.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
+            white.send(JsonFmt.toJson(new GameCommand<GameCommand.PayloadMakeMove>(
                 GameCommand.COMMAND_MAKE_MOVE, cl2Id, new GameCommand.PayloadMakeMove("0202"))));
-            String movenotify = client2.receive();
-            String resp2 = client2.receive();
+            String movenotify = white.receive();
+            String resp2 = white.receive();
             log("Client2 move response: " + resp2);
 
             // Parse responses to ensure at least one move was accepted

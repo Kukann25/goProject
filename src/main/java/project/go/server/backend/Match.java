@@ -12,15 +12,15 @@ import project.go.applogic.Color;
 // Represents a match between two players
 public class Match implements Runnable {
 
-    public static class Data extends ConnectedClient.Data {
+    public static class ClientData extends ConnectedClient.Data {
         private String matchId;
         private Color side;
         
-        public Data(final Socket connection) {
+        public ClientData(final Socket connection) {
             super(connection);
         }
 
-        public Data(final ConnectedClient.Data base, Color side, final String matchId) {
+        public ClientData(final ConnectedClient.Data base, Color side, final String matchId) {
             super(base.getSocket());
             this.side = side;
             this.matchId = matchId;
@@ -33,8 +33,8 @@ public class Match implements Runnable {
     }
 
 
-    private Data black;
-    private Data white;
+    private ClientData black;
+    private ClientData white;
     private final String matchId;
     private MatchState state;
 
@@ -43,8 +43,8 @@ public class Match implements Runnable {
         this.matchId = java.util.UUID.randomUUID().toString();
         // this.board = new ExtBoard(Config.DEFAULT_BOARD_SIZE); // Standard 19x19 board
 
-        this.black = new Data(cl1, Color.BLACK, matchId);
-        this.white = new Data(cl2, Color.WHITE, matchId);
+        this.black = new ClientData(cl1, Color.BLACK, matchId);
+        this.white = new ClientData(cl2, Color.WHITE, matchId);
     }
 
     private static void log(String msg) {
@@ -60,8 +60,8 @@ public class Match implements Runnable {
 
             // Support async input reading to disallow blocking
             // (Always respond to both players even if it's not their turn)
-            MatchLogic blackLogic = new MatchLogic(black, Color.BLACK, sharedState);
-            MatchLogic whiteLogic = new MatchLogic(white, Color.WHITE, sharedState);
+            MatchLogic blackLogic = new MatchLogic(black, sharedState);
+            MatchLogic whiteLogic = new MatchLogic(white, sharedState);
 
             while (this.state.isOngoing()) {
                 blackLogic.handleInput();
@@ -91,7 +91,7 @@ public class Match implements Runnable {
     /**
      * Closes a client connection with a final message (if not already closed).
      */
-    private void close(Data client, int status, String message) {
+    private void close(ClientData client, int status, String message) {
         try {
             if (client.getSocket().isClosed()) return;
 

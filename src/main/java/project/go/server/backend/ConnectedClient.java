@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 
 import project.go.server.common.json.*;
 
-public class Client implements Runnable {
+public class ConnectedClient implements Runnable {
 
     static public class Data {
         private Socket socket;
@@ -60,7 +60,7 @@ public class Client implements Runnable {
      * Initializes a Client for the given socket connection.
      * @param socket The socket connected to the client.
      */
-    public Client(Socket socket) {
+    public ConnectedClient(Socket socket) {
         this.state = State.CONNECTED;
         this.clientData = new Data(socket);
     }

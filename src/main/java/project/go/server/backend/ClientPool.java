@@ -8,10 +8,10 @@ import project.go.Config;
 public class ClientPool {
 
     static private class ClientRunWrapper implements Runnable {
-        private final Client client;
+        private final ConnectedClient client;
         private final ClientPool clientPool;
 
-        public ClientRunWrapper(Client client, ClientPool clientPool) {
+        public ClientRunWrapper(ConnectedClient client, ClientPool clientPool) {
             this.client = client;
             this.clientPool = clientPool;
         }
@@ -28,7 +28,7 @@ public class ClientPool {
         }
     }
 
-    private final HashMap<String, Client> clients;
+    private final HashMap<String, ConnectedClient> clients;
     private final ExecutorService clientPool;
     private boolean isRunning = true;
 
@@ -40,7 +40,7 @@ public class ClientPool {
     /**
      * Adds a new client to the pool and starts its handler.
      */
-    synchronized public void addClient(final Client client) throws IllegalStateException {
+    synchronized public void addClient(final ConnectedClient client) throws IllegalStateException {
         if (!isRunning) {
             throw new IllegalStateException("ClientPool is not running");
         }
@@ -65,9 +65,9 @@ public class ClientPool {
         return !isRunning;
     }
 
-    synchronized public Vector<Client> getAwaitingClients() {
-        Vector<Client> awaitingClients = new Vector<>();
-        for (Client client : clients.values()) {
+    synchronized public Vector<ConnectedClient> getAwaitingClients() {
+        Vector<ConnectedClient> awaitingClients = new Vector<>();
+        for (ConnectedClient client : clients.values()) {
             if (client.isWaitingForMatch()) {
                 awaitingClients.add(client);
             }
@@ -84,7 +84,7 @@ public class ClientPool {
         }
 
         isRunning = false;
-        for (Client client : clients.values()) {
+        for (ConnectedClient client : clients.values()) {
             client.close();
         }
 

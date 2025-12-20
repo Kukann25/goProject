@@ -12,7 +12,7 @@ import project.go.applogic.Color;
 // Represents a match between two players
 public class Match implements Runnable {
 
-    public static class Data extends Client.Data {
+    public static class Data extends ConnectedClient.Data {
         private String matchId;
         private Color side;
         
@@ -20,7 +20,7 @@ public class Match implements Runnable {
             super(connection);
         }
 
-        public Data(final Client.Data base, Color side, final String matchId) {
+        public Data(final ConnectedClient.Data base, Color side, final String matchId) {
             super(base.getSocket());
             this.side = side;
             this.matchId = matchId;
@@ -38,7 +38,7 @@ public class Match implements Runnable {
     private final String matchId;
     private MatchState state;
 
-    public Match(Client.Data cl1, Client.Data cl2) {
+    public Match(ConnectedClient.Data cl1, ConnectedClient.Data cl2) {
         this.state = new MatchState();
         this.matchId = java.util.UUID.randomUUID().toString();
         // this.board = new ExtBoard(Config.DEFAULT_BOARD_SIZE); // Standard 19x19 board

@@ -52,10 +52,10 @@ public class MatchPool {
             return;
         }
         try {
-            Vector<Client> awaitingClients = clientPool.getAwaitingClients();
+            Vector<ConnectedClient> awaitingClients = clientPool.getAwaitingClients();
             while (awaitingClients.size() >= 2) {
-                Client cl1 = awaitingClients.remove(0);
-                Client cl2 = awaitingClients.remove(0);
+                ConnectedClient cl1 = awaitingClients.remove(0);
+                ConnectedClient cl2 = awaitingClients.remove(0);
                 cl1.join();
                 cl2.join();
                 Match match = new Match(cl1.getClientData(), cl2.getClientData());

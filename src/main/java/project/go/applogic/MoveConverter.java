@@ -38,14 +38,16 @@ public abstract class MoveConverter {
         int y=0;
 
         try{
-            x+=Integer.parseInt(input.substring(0, 1))*10;
-            x+=Integer.parseInt(input.substring(1, 2));
-            y+=Integer.parseInt(input.substring(2, 3))*10;
-            y+=Integer.parseInt(input.substring(3, 4));
+            if(input.length()==4){
+                x+=Integer.parseInt(input.substring(0, 1))*10;
+                x+=Integer.parseInt(input.substring(1, 2));
+                y+=Integer.parseInt(input.substring(2, 3))*10;
+                y+=Integer.parseInt(input.substring(3, 4));
 
-            SingleMove singleMove=new SingleMove(x, y);
+                SingleMove singleMove=new SingleMove(x, y);
 
-            return singleMove;
+                return singleMove;
+            }
         }
         catch(NumberFormatException e){
             Logger.getInstance().log("NumberFormatException", "In class MoveConverter: fromJSON");

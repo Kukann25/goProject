@@ -36,16 +36,16 @@ public class MoveHandler{
             if(board.returnCurrentState()[x][y]==Color.NONE){
                 if(hasBreaths(x, y, side)){
                     board.returnCurrentState()[x][y]=side;
-                    if(!hasBreaths(x+1, y, opponent)&&isValid(x+1, y)){
+                    if(isValid(x+1, y)&&!hasBreaths(x+1, y, opponent)){
                         board.returnCurrentState()[x+1][y]=Color.NONE;
                     }
-                    if(!hasBreaths(x-1, y, opponent)&&isValid(x-1, y)){
+                    if(isValid(x-1, y)&&!hasBreaths(x-1, y, opponent)){
                         board.returnCurrentState()[x-1][y]=Color.NONE;
                     }
-                    if(!hasBreaths(x, y+1, opponent)&&isValid(x, y+1)){
+                    if(isValid(x, y+1)&&!hasBreaths(x, y+1, opponent)){
                         board.returnCurrentState()[x][y+1]=Color.NONE;
                     }
-                    if(!hasBreaths(x, y-1, opponent)&&isValid(x, y-1)){
+                    if(isValid(x, y-1)&&!hasBreaths(x, y-1, opponent)){
                         board.returnCurrentState()[x][y-1]=Color.NONE;
                     }
                     board.switchTurn();

@@ -3,6 +3,7 @@ package project.go.server.client;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import project.go.server.client.views.Game;
 import project.go.server.client.views.MainMenu;
 
 public class Router {
@@ -18,11 +19,13 @@ public class Router {
      */
     public static void route(Path path) {
         Parent node;
-        primaryStage.setScene(null);
         switch (path) {
             case HOME:
                 node = new MainMenu();
-                break;        
+                break;
+            case GAME:
+                node = new Game();
+                break;      
             default:
                 node = new MainMenu();
         }

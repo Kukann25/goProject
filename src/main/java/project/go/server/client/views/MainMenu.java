@@ -7,6 +7,8 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import project.go.server.client.Client;
+import project.go.server.client.Path;
+import project.go.server.client.Router;
 import project.go.server.client.components.Status;
 
 /**
@@ -41,6 +43,8 @@ public class MainMenu extends GridPane {
                 }
 
                 Client.getInstance().getConnection().connect();
+                Router.route(Path.GAME);
+
             } catch (ConnectException ce) {
                 System.out.println("Failed to connect to server: " + ce.getMessage());
                 this.statusComponent.setStatusText("Connection failed", Status.StatusType.ERROR);

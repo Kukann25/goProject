@@ -31,6 +31,7 @@ public class MatchLogic {
     }
 
     private void sendPlayerTurn() throws IOException {
+        log(client.getClientId() + " got turn: " + client.getSide());
         out.println(JsonFmt.toJson(
             new GameResponse<GameResponse.PlayerTurn>(
                 GameResponse.STATUS_OK,

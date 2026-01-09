@@ -24,20 +24,28 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Pair;
 import project.go.applogic.Board;
+import project.go.applogic.SingleMove;
 
 public class BoardComponent extends Canvas {
+
+    @FunctionalInterface
+    public static interface Callback {
+        public void apply(SingleMove coordinates);
+    }
+
     // padding for the whole board
     private int boardSize;
     private final double padding = 2;
     private double stoneSize;
-    private Function<Point2D, Void> callback = null;
+    private Callback callback = null;
 
     public BoardComponent(Board board) {
         super(500, 500);
-        init(board);
+        this.draw(board);
+        this.registerHandlers();
     }
 
-    private void init(final Board board) {
+    private void draw(final Board board) {
         // Size = min (width, height)
         final double sizePx = 
             this.getWidth() > this.getHeight() ? this.getHeight() : this.getWidth();
@@ -63,12 +71,10 @@ public class BoardComponent extends Canvas {
         for (int r = 0; r < board.getSize(); r++, y += squareSize) {
             gc.strokeLine(x, y, x + lineLenght - squareSize, y);
         }
-
-        this.registerHandlers();
     }
 
-    private Point2D getCoords(MouseEvent event) {
-        Point2D coords = new Point2D(-1, -1);
+    private SingleMove getCoords(MouseEvent event) {
+        SingleMove coords = new SingleMove(-1, -1);
 
         double p = padding + stoneSize/2;
 
@@ -83,59 +89,68 @@ public class BoardComponent extends Canvas {
             c = (int)Math.floor((event.getX() - p) / stoneSize);
 
         // Check the closest intersection
-        Point2D closest = coords;
+        coords = new SingleMove(c, r);
         double distance = 100;
-        List<Point2D> queue = new ArrayList<>();
+        List<SingleMove> queue = new ArrayList<>();
+        // GraphicsContext gc = this.getGraphicsContext2D();
+        // gc.setFill(Color.GREEN);
 
-        if (c > 0) {
-            if (r > 0) {
-                queue.add(new Point2D(r, c));
+        if (c >= 0) {
+            if (r >= 0) {
+                queue.add(new SingleMove(c, r));
+                // gc.fillOval(c*stoneSize + p, r*stoneSize + p, stoneSize/2, stoneSize/2);
             }
             if (r < boardSize) {
-                queue.add(new Point2D(r+1, c));
+                queue.add(new SingleMove(c, r+1));
+                // gc.fillOval(c*stoneSize + p, (r+1)*stoneSize + p, stoneSize/2, stoneSize/2);
             }
         }
         if (c < boardSize) {
-            if (r > 0) {
-                queue.add(new Point2D(r, c+1));
+            if (r >= 0) {
+                queue.add(new SingleMove(c+1, r));
+                // gc.fillOval((c+1)*stoneSize + p, r*stoneSize + p, stoneSize/2, stoneSize/2);
             }
             if (r < boardSize) {
-                queue.add(new Point2D(r+1, c+1));
+                queue.add(new SingleMove(r+1, c+1));
+                // gc.fillOval((c+1)*stoneSize + p, (r+1)*stoneSize + p, stoneSize/2, stoneSize/2);
             }
         }
 
+        
         // Loop throught the candidates and pick the closest one
-        for (Point2D point : queue) {
+        for (SingleMove point : queue) {
             double d = Math.sqrt(
-                Math.pow(point.getX() - coords.getX(), 2) +
-                Math.pow(point.getY() - coords.getY(), 2));
+                Math.pow(point.getX()*stoneSize + p - event.getX(), 2) +
+                Math.pow(point.getY()*stoneSize + p - event.getY(), 2));
             
+            // System.out.println("Point: " + point + " dist=" + d);
             if (d < distance) {
                 distance = d;
-                closest = point;
-                System.out.println("New closest: " + closest);
+                coords = point;
+                // System.out.println("New closest: " + coords + " (d=" + d);
             }
         }
 
-        // Check the distance to closest intersection (r,c) (r, c+1) (r+1, c) (r+1, c+1)
-        System.out.println("Clicked at row=" + r + " col=" + c);
+        // gc.setFill(Color.RED);
+        // gc.fillOval(coords.getX()*stoneSize + p, coords.getY()*stoneSize + p, stoneSize/2, stoneSize/2);
+
         return coords;
     }
 
     private void registerHandlers() {
         this.addEventHandler(MouseEvent.MOUSE_CLICKED, (event) -> {
-            Point2D coords = this.getCoords(event);
+            SingleMove coords = this.getCoords(event);
             if (coords.getX() != -1 && coords.getY() != -1 && callback != null) {
-                this.callback.apply(coords);
+                this.callback.apply(new SingleMove(coords.getX(), coords.getY()));
             }
         });
     }
 
     public void update(final Board board) {
-
+        this.draw(board);
     }
 
-    public void setOnClick(Function<Point2D, Void> callback) {
+    public void setCallback(Callback callback) {
         this.callback = callback;
     }
 }

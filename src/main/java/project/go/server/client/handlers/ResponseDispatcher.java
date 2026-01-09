@@ -12,7 +12,7 @@ import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.GameResponse.BoardUpdate;
 import project.go.server.common.json.GameResponse.PlayerTurn;
 
-public class ResponseDispatcher implements IResponseDispatcher {
+public class ResponseDispatcher {
     private final Map<String, ResponseHandler> handlers = new HashMap<>();
 
     public ResponseDispatcher() {
@@ -65,6 +65,12 @@ public class ResponseDispatcher implements IResponseDispatcher {
             }
         });
     }
+
+
+    public void register(String responseType, ResponseHandler handler) {
+        handlers.put(responseType, handler);
+    }
+
 
     public void dispatch(GameResponse<?> response, ClientState state) {
         if (response.isError()) {

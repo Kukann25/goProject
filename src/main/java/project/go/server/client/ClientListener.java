@@ -18,13 +18,17 @@ public class ClientListener implements Runnable {
     private final ClientState clientState;
     private final ClientConn connData;
     private Scanner in;
-    private final ResponseDispatcher dispatcher;
+    private ResponseDispatcher dispatcher;
 
     public ClientListener(ClientState clientState, ClientConn connData) {
         this.clientState = clientState;
         this.connData = connData;
         this.in = null;
         this.dispatcher = new ResponseDispatcher();
+    }
+
+    public void setDispatcher(ResponseDispatcher dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     @Override

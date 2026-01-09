@@ -71,6 +71,36 @@ public class BoardComponent extends Canvas {
         for (int r = 0; r < board.getSize(); r++, y += squareSize) {
             gc.strokeLine(x, y, x + lineLenght - squareSize, y);
         }
+
+        // draw stones
+        project.go.applogic.Color[][] cells = board.returnCurrentState();
+
+        double p = padding + stoneSize/2;
+        for (int r = 0; r < board.getSize(); r++) {
+            for (int c = 0; c < board.getSize(); c++) {
+                switch (cells[c][r]) {
+                    case BLACK:
+                        gc.setFill(Color.BLACK);
+                        gc.fillOval(
+                            p + c * squareSize - squareSize/4,
+                            p + r * squareSize - squareSize/4,
+                            squareSize/2,
+                            squareSize/2);
+                        break;
+                    case WHITE:
+                        gc.setFill(Color.WHITE);
+                        gc.fillOval(
+                            p + c * squareSize - squareSize/4,
+                            p + r * squareSize - squareSize/4,
+                            squareSize/2,
+                            squareSize/2);
+                        break;
+                    case NONE:
+                        // do nothing
+                        break;
+                }
+            }
+        }
     }
 
     private SingleMove getCoords(MouseEvent event) {

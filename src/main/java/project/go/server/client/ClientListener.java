@@ -15,12 +15,28 @@ import project.go.server.common.json.JsonFmt;
  * Class to listen for server messages and handle them accordingly.
  */
 public class ClientListener implements Runnable {
+
+    private static Thread listenerThread = null;
+    private static ClientListener instance = null;
+
     private final ClientState clientState;
     private final ClientConn connData;
     private Scanner in;
     private ResponseDispatcher dispatcher;
 
-    public ClientListener(ClientState clientState, ClientConn connData) {
+    public static void init(ClientState clientState, ClientConn connData) {
+        if (listenerThread == null) {
+            instance = new ClientListener(clientState,  connData);
+            listenerThread = new Thread(instance);
+            listenerThread.start();
+        }
+    }
+
+    public static ClientListener getInstance() {
+        return instance;
+    }
+
+    private ClientListener(ClientState clientState, ClientConn connData) {
         this.clientState = clientState;
         this.connData = connData;
         this.in = null;
@@ -28,7 +44,9 @@ public class ClientListener implements Runnable {
     }
 
     public void setDispatcher(ResponseDispatcher dispatcher) {
-        this.dispatcher = dispatcher;
+        synchronized (this) {
+            this.dispatcher = dispatcher;
+        }
     }
 
     @Override
@@ -47,7 +65,7 @@ public class ClientListener implements Runnable {
                     Thread.yield();
                 }
             } catch (Exception e) {
-                SyncPrinter.error("Error reading from server: " + e.getMessage());
+                SyncPrinter.error("[ClientListener] Error reading from server: " + e.getMessage());
                 clientState.stop();
             }
         }
@@ -71,21 +89,23 @@ public class ClientListener implements Runnable {
     }
 
     private void parseResponse(String line) throws JsonProcessingException {
-        try {
-            JsonNode node = JsonFmt.readTree(line);
+        synchronized (this) {
+            try {
+                JsonNode node = JsonFmt.readTree(line);
 
-            // Distinguish between initial Connection handshake and Game Responses
-            if (node.has("clientId") && !node.has("type")) {
-                Connection conn = JsonFmt.treeToValue(node, Connection.class);
-                handleConnection(conn);
-            } else if (node.has("type") || node.has("status")) {
-                GameResponse<?> resp = JsonFmt.treeToValue(node, GameResponse.class);
-                dispatcher.dispatch(resp, clientState);
-            } else {
-                SyncPrinter.detail("Unknown JSON message format: " + line);
+                // Distinguish between initial Connection handshake and Game Responses
+                if (node.has("clientId") && !node.has("type")) {
+                    Connection conn = JsonFmt.treeToValue(node, Connection.class);
+                    handleConnection(conn);
+                } else if (node.has("type") || node.has("status")) {
+                    GameResponse<?> resp = JsonFmt.treeToValue(node, GameResponse.class);
+                    dispatcher.dispatch(resp, clientState);
+                } else {
+                    SyncPrinter.detail("Unknown JSON message format: " + line);
+                }
+            } catch (JsonParseException e) {
+                SyncPrinter.error("Received malformed JSON from server: " + line);
             }
-        } catch (JsonParseException e) {
-            SyncPrinter.error("Received malformed JSON from server: " + line);
         }
     }
     

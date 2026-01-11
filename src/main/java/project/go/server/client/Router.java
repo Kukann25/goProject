@@ -17,14 +17,14 @@ public class Router {
     /**
      * Routes to the specified path in the application.
      */
-    public static void route(Path path) {
+    public static void route(Path path, Object... params) {
         Parent node;
         switch (path) {
             case HOME:
                 node = new MainMenu();
                 break;
             case GAME:
-                node = new Game();
+                node = new Game((Game.Props) params[0]);
                 break;      
             default:
                 node = new MainMenu();

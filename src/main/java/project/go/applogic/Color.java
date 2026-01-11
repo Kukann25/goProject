@@ -4,5 +4,15 @@ package project.go.applogic;
 public enum Color {
     BLACK,
     WHITE,
-    NONE
+    NONE;
+
+    public Color getOpposite() {
+        if (this == BLACK) {
+            return WHITE;
+        } else if (this == WHITE) {
+            return BLACK;
+        } else {
+            return NONE;
+        }
+    }
 }

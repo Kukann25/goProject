@@ -7,7 +7,9 @@ import project.go.applogic.MoveHandler;
 import project.go.server.client.Client;
 import project.go.server.client.ClientListener;
 import project.go.server.client.CommandMatcher;
+import project.go.server.client.SyncPrinter;
 import project.go.server.client.components.BoardComponent;
+import project.go.server.client.components.PlayerStats;
 import project.go.server.client.handlers.ResponseDispatcher;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.GameResponse.BoardUpdate;
@@ -15,13 +17,24 @@ import project.go.server.client.components.Status;
 
 public class Game extends GridPane {
     private BoardComponent board;
-    private Thread listenerThread;
     private ResponseDispatcher dispatcher;
     private Status statusComponent;
 
-    public Game() {
+    public static class Props {
+        private GameResponse.PlayerTurn playerTurn;
+        
+        public Props(GameResponse.PlayerTurn playerTurn) {
+            this.playerTurn = playerTurn;
+        }
+
+        public GameResponse.PlayerTurn getPlayerTurn() {
+            return playerTurn;
+        }
+    }
+
+    public Game(Props props) {
         this.statusComponent = new Status();
-        this.statusComponent.setStatusText("Connected", Status.StatusType.OK);
+        statusComponent.setStatusText("Joined match, your side: " + props.playerTurn.getSide(), Status.StatusType.OK);
 
         this.board = new BoardComponent(Client.getInstance().getClientState().getBoard());
         this.board.setCallback((point) -> {
@@ -41,7 +54,9 @@ public class Game extends GridPane {
             Platform.runLater(() -> {
                 if (!resp.isError()) {
                     statusComponent.setStatusText(resp.getMessage(), Status.StatusType.INFO);
+                    SyncPrinter.info(resp.getMessage());
                 } else {
+                    SyncPrinter.error("[Game] Server error: " + resp.getMessage());
                     statusComponent.setStatusText("Server error: " + resp.getMessage(), Status.StatusType.ERROR);
                 }
             });
@@ -55,22 +70,11 @@ public class Game extends GridPane {
                     MoveHandler handler = new MoveHandler(state.getBoard());
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getPlayerColor());
                     board.update(state.getBoard());
-                    statusComponent.setStatusText("Move accepted: " + resp.getMessage(), Status.StatusType.OK);
+                    statusComponent.setStatusText("Move accepted: " + data.getMove(), Status.StatusType.OK);
+                    SyncPrinter.success("Move accepted: " + data.getMove());
                 } else {
-                    statusComponent.setStatusText("Invalid move: " + resp.getMessage(), Status.StatusType.ERROR);
-                }
-            });
-        });
-
-        // Player Turn Handler
-        this.dispatcher.register(GameResponse.TYPE_PLAYER_TURN, (resp, state) -> {
-            Platform.runLater(() -> {
-                if (resp.getData() instanceof GameResponse.PlayerTurn) {
-                    GameResponse.PlayerTurn data = (GameResponse.PlayerTurn) resp.getData();
-                    state.setPlayerColor(data.getColor());
-                    statusComponent.setStatusText("Joined match, your side: " + data.getSide(), Status.StatusType.OK);
-                } else {
-                    statusComponent.setStatusText("Invalid player turn data.", Status.StatusType.ERROR);
+                    statusComponent.setStatusText(resp.getMessage(), Status.StatusType.ERROR);
+                    SyncPrinter.error("Invalid move: " + resp.getMessage());
                 }
             });
         });
@@ -84,27 +88,24 @@ public class Game extends GridPane {
                     // Make opponent move
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getEnemyColor());
                     board.update(state.getBoard());
-                    statusComponent.setStatusText("Opponent moved: " + resp.getMessage(), Status.StatusType.INFO);
-                    
+                    statusComponent.setStatusText("Opponent moved: " + data.getMove(), Status.StatusType.INFO);
+                    SyncPrinter.info("Opponent moved: " + data.getMove());
                 } else {
+                    SyncPrinter.error("Invalid board update data received from server.");
                     statusComponent.setStatusText("Invalid board update data.", Status.StatusType.ERROR);
                 }
             });
         });
 
         // Setup listener
-
-        ClientListener listener = new ClientListener(
-            Client.getInstance().getClientState(),
-            Client.getInstance().getConnection()
-        );
+        ClientListener listener = ClientListener.getInstance();
         listener.setDispatcher(this.dispatcher);
 
-        listenerThread = new Thread(listener);
-        listenerThread.start();
-        
-
+        this.add(new PlayerStats(props.getPlayerTurn().getColor()), 1, 0);
         this.add(board, 0, 0);
+
+        // Make the status bar span two columns
+        GridPane.setColumnSpan(statusComponent, 2);
         this.add(statusComponent, 0, 1);
     }
 }

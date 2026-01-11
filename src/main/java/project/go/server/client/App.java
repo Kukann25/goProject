@@ -11,7 +11,6 @@ public class App extends Application {
     @Override
     public void start(javafx.stage.Stage primaryStage) throws Exception {
         Router.setPrimaryStage(primaryStage);
-
         Router.route(Path.HOME);
     }
 }

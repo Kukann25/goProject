@@ -95,6 +95,7 @@ public class ClientConn {
         try {
             if (socket != null && !socket.isClosed()) {
                 socket.close();
+                isConnected = false;
                 log("Connection closed.");
             }
         } catch (IOException e) {

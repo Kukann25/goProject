@@ -70,6 +70,56 @@ public class GameResponse<T> {
         }
     }
 
+    // Data structure for match end information
+    public static class MatchEnd {
+        public static final String REASON_FORFEIT = "forfeit";
+        public static final String REASON_NORMAL = "normal";
+        public static final String REASON_ERROR = "error";
+
+        public static final String WINNER_BLACK = "black";
+        public static final String WINNER_WHITE = "white";
+        public static final String WINNER_NONE = "none"; // for draw / error
+
+        private String reason; // e.g., "forfeit", "normal" or "error"
+        private String winner = WINNER_NONE; // "black", "white", or "none" for draw
+
+        public MatchEnd() {}
+        public MatchEnd(String reason, String winner) {
+            this.reason = reason;
+            this.winner = winner;
+        }
+
+        public String getReason() { return reason; }
+        public String getWinner() { return winner; }
+        public void setReason(String reason) { this.reason = reason; }
+        public void setWinner(String winner) { this.winner = winner; }
+
+        @JsonIgnore
+        public Color getWinnerColor() {
+            if (winner.equals(WINNER_BLACK)) {
+                return Color.BLACK;
+            } else if (winner.equals(WINNER_WHITE)) {
+                return Color.WHITE;
+            }
+            return null;
+        }
+
+        @JsonIgnore
+        public boolean isError() {
+            return reason.equals(REASON_ERROR);
+        }
+
+        @JsonIgnore
+        public boolean isForfeit() {
+            return reason.equals(REASON_FORFEIT);
+        }
+
+        @JsonIgnore
+        public boolean isNormalEnd() {
+            return reason.equals(REASON_NORMAL);
+        }
+    }
+
     private int status; // First bit OK/Error, other bits verbose flags
     private String type;
     private String message;
@@ -85,11 +135,13 @@ public class GameResponse<T> {
         @JsonSubTypes.Type(value = BoardUpdate.class, name = TYPE_BOARD_UPDATE),
         @JsonSubTypes.Type(value = BoardUpdate.class, name = TYPE_VALID_MOVE),
         @JsonSubTypes.Type(value = PlayerTurn.class, name = TYPE_PLAYER_TURN),
+        @JsonSubTypes.Type(value = MatchEnd.class, name = TYPE_MATCH_END),
     })
     private T data;
 
     public final static int STATUS_OK = 0;
     public final static int STATUS_ERROR = 1;
+    public final static int STATUS_FATAL = 2; // unrecoverable error
 
     public final static int VERBOSE_VALID_MOVE = 1;
     public final static int VERBOSE_INVALID_MOVE = 2;
@@ -103,6 +155,7 @@ public class GameResponse<T> {
     public final static String TYPE_PLAYER_TURN = "player_turn"; // data contains PlayerTurn
     public final static String TYPE_BOARD_UPDATE = "board_update"; // data contains board state
     public final static String TYPE_VALID_MOVE = "valid_move"; // data contains move info
+    public final static String TYPE_MATCH_END = "match_end"; // data contains match end info
 
     public final static String MESSAGE_MOVE_OK = "Move accepted";
     public final static String MESSAGE_INVALID_MOVE = "Invalid move";

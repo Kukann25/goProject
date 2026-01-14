@@ -82,26 +82,4 @@ public class MatchLogic {
             )));
         }
     }
-
-    /**
-     * Processes a move command from a player.
-     * @param client
-     * @param payload
-     * @return StatusGameResponse indicating success or failure of the move.
-     */
-    // private GameResponse<?> processMove(GameCommand.PayloadMakeMove payload) {
-    //     try {
-    //         // Validate and apply the move using shared state
-    //         sharedState.makeMove(payload.getMove(), client.getSide());
-    //         log("Player " + client.data().getClientId() + " played move: " + payload.getMove());
-    //         return new GameResponse<GameResponse.BoardUpdate>(
-    //             StatusGameResponse.STATUS_OK,
-    //             GameResponse.TYPE_VALID_MOVE,
-    //             StatusGameResponse.MESSAGE_MOVE_OK,
-    //             new GameResponse.BoardUpdate(payload.getMove()));
-    //     }  catch (IllegalArgumentException e) {
-    //         log("Illegal move from player " + client.data().getClientId() + ": " + e.getMessage());
-    //         return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_INVALID_MOVE);
-    //     }
-    // }
 }

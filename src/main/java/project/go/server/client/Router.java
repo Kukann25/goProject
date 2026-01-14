@@ -14,6 +14,10 @@ public class Router {
         primaryStage = stage;
     }
     
+    public static Stage getPrimaryStage() {
+        return primaryStage;
+    }
+
     /**
      * Routes to the specified path in the application.
      */
@@ -24,7 +28,7 @@ public class Router {
                 node = new MainMenu();
                 break;
             case GAME:
-                node = new Game((Game.Props) params[0]);
+                node = new Game(primaryStage, (Game.Props) params[0]);
                 break;      
             default:
                 node = new MainMenu();

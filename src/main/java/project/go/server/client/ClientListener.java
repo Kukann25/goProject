@@ -15,28 +15,12 @@ import project.go.server.common.json.JsonFmt;
  * Class to listen for server messages and handle them accordingly.
  */
 public class ClientListener implements Runnable {
-
-    private static Thread listenerThread = null;
-    private static ClientListener instance = null;
-
     private final ClientState clientState;
     private final ClientConn connData;
     private Scanner in;
     private ResponseDispatcher dispatcher;
 
-    public static void init(ClientState clientState, ClientConn connData) {
-        if (listenerThread == null) {
-            instance = new ClientListener(clientState,  connData);
-            listenerThread = new Thread(instance);
-            listenerThread.start();
-        }
-    }
-
-    public static ClientListener getInstance() {
-        return instance;
-    }
-
-    private ClientListener(ClientState clientState, ClientConn connData) {
+    public ClientListener(ClientState clientState, ClientConn connData) {
         this.clientState = clientState;
         this.connData = connData;
         this.in = null;
@@ -47,6 +31,19 @@ public class ClientListener implements Runnable {
         synchronized (this) {
             this.dispatcher = dispatcher;
         }
+    }
+
+    public void stop() {
+        clientState.stop();
+        connData.close();
+        in = null;      
+    }
+
+    public void reset() {
+        clientState.reset();
+        this.dispatcher = new ResponseDispatcher();
+        this.in = null;
+        this.connData.close();
     }
 
     @Override

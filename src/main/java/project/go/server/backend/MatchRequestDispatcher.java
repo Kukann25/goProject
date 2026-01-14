@@ -53,6 +53,30 @@ public class MatchRequestDispatcher {
             }
         });
 
+        handlers.put(GameCommand.COMMAND_PASS, (request, sharedState, client) -> {
+            try {
+                sharedState.passTurn(client.getSide());
+                log("Player " + client.data().getClientId() + " passed their turn.");
+                return new StatusGameResponse(StatusGameResponse.STATUS_OK, "Pass move accepted.");
+            } catch (IllegalArgumentException e) {
+                log("Invalid pass from player " + client.data().getClientId() + ": " + e.getMessage());
+                return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid pass move.");
+            }
+        });
+
+
+        handlers.put(GameCommand.COMMAND_RESIGN, (request, sharedState, client) -> {
+            try {
+                sharedState.resign(client.getSide());
+                log("Player " + client.data().getClientId() + " resigned the match.");
+                log("Shared state: " + sharedState.getMatchState().toString());
+
+                return new StatusGameResponse(StatusGameResponse.STATUS_OK, "Resignation accepted.");
+            } catch (IllegalArgumentException e) {
+                log("Invalid resignation from player " + client.data().getClientId() + ": " + e.getMessage());
+                return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid resignation.");
+            }
+        });
     }
 
     public GameResponse<?> dispatch(GameCommand<?> request) {

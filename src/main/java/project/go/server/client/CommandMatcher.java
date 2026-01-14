@@ -5,6 +5,8 @@ import project.go.server.client.commands.local.Help;
 import project.go.server.client.commands.server.Disconnect;
 import project.go.server.client.commands.server.JoinMatch;
 import project.go.server.client.commands.server.MakeMove;
+import project.go.server.client.commands.server.PassMove;
+import project.go.server.client.commands.server.Resign;
 
 /**
  * Matches command names to their implementations
@@ -38,6 +40,10 @@ public final class CommandMatcher {
                 return new MakeMove(args);
             case DISCONNECT:
                 return new Disconnect(args);
+            case RESIGN:
+                return new Resign(args);
+            case PASS:
+                return new PassMove(args);
             default:
                 return null;
         }

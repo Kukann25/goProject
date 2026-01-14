@@ -8,14 +8,12 @@ import project.go.applogic.Color;
  * Class to manage the state of the client application.
  */
 public class ClientState {
-    private boolean isRunning;
+    private volatile boolean isRunning;
     private Board board;
     private Color playerColor;
 
     public ClientState() {
-        this.isRunning = true;
-        this.playerColor = Color.NONE;
-        this.board = new Board(Config.DEFAULT_BOARD_SIZE);
+        reset();
     }
 
     public boolean isRunning() {
@@ -36,6 +34,12 @@ public class ClientState {
 
     public Color getEnemyColor() {
         return playerColor == Color.BLACK ? Color.WHITE : Color.BLACK;
+    }
+
+    public void reset() {
+        this.isRunning = true;
+        this.playerColor = Color.NONE;
+        this.board = new Board(Config.DEFAULT_BOARD_SIZE);
     }
 
     public void stop() {

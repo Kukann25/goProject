@@ -6,7 +6,6 @@ import java.util.NoSuchElementException;
 
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
-import project.go.server.common.json.StatusGameResponse;
 import project.go.applogic.Color;
 
 // Represents a match between two players
@@ -32,7 +31,6 @@ public class Match implements Runnable {
         public void setMatchId(String matchId) { this.matchId = matchId; }
     }
 
-
     private ClientData black;
     private ClientData white;
     private final String matchId;
@@ -56,7 +54,7 @@ public class Match implements Runnable {
 
         // Run the match until completion
         try {
-            SharedMatchLogicState sharedState = new SharedMatchLogicState();
+            SharedMatchLogicState sharedState = new SharedMatchLogicState(this.state);
 
             // Support async input reading to disallow blocking
             // (Always respond to both players even if it's not their turn)
@@ -71,19 +69,30 @@ public class Match implements Runnable {
         } catch(NoSuchElementException e) {
             // Thrown by Scanner when input is closed
             log("A player disconnected: " + e.getMessage());
-            this.state.setState(MatchState.ABORTED);
+            this.state.setState(MatchState.ABORTED | MatchState.CLOSED_CONNECTION);
         } catch (Exception e) {
             // Other exceptions - internal errors
             e.printStackTrace();
             this.state.setState(MatchState.ABORTED);
         } finally {
             if (this.state.isAborted()) {
-                close(black, GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INTERNAL_ERROR);
-                close(white, GameResponse.STATUS_ERROR, GameResponse.MESSAGE_INTERNAL_ERROR);
+                close(black, new GameResponse<GameResponse.MatchEnd>(
+                    GameResponse.STATUS_FATAL,
+                    GameResponse.TYPE_MATCH_END,
+                    "Match aborted due to error or disconnection",
+                    new GameResponse.MatchEnd(
+                        GameResponse.MatchEnd.REASON_ERROR,
+                        GameResponse.MatchEnd.WINNER_NONE)));
+
+                close(white, new GameResponse<GameResponse.MatchEnd>(
+                    GameResponse.STATUS_FATAL,
+                    GameResponse.TYPE_MATCH_END,
+                    "Match aborted due to error or disconnection",
+                    new GameResponse.MatchEnd(
+                        GameResponse.MatchEnd.REASON_ERROR,
+                        GameResponse.MatchEnd.WINNER_NONE)));
             } else {
-                // TODO: Return final scores
-                close(black, GameResponse.STATUS_OK, GameResponse.MESSAGE_MATCH_ENDED);
-                close(white, GameResponse.STATUS_OK, GameResponse.MESSAGE_MATCH_ENDED);
+                notifyOnGameEnd();
             }
         }
     }
@@ -91,18 +100,57 @@ public class Match implements Runnable {
     /**
      * Closes a client connection with a final message (if not already closed).
      */
-    private void close(ClientData client, int status, String message) {
+    private void close(ClientData client, Object response) {
         try {
             if (client.getSocket().isClosed()) return;
 
             PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
-            log("Closing connection to player " + client.data().getClientId() + " with status " + status);
-            out.println(JsonFmt.toJson(new StatusGameResponse(status, message)));
+            log("Closing connection to player " + client.data().getClientId());
+            out.println(JsonFmt.toJson(response));
             client.getSocket().close();
             state.addState(MatchState.CLOSED_CONNECTION);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void notifyOnGameEnd() {
+        GameResponse.MatchEnd matchEndResponse;
+        Color winner = state.getWinner();
+        String message;
+        String reason;
+        
+        if (state.isForfeited()) {
+            reason = "forfeit";
+        } else {
+            reason = "normal";
+        }
+
+        if (winner == Color.BLACK) {
+            message = "Black player wins!";
+            matchEndResponse = new GameResponse.MatchEnd(
+                reason, GameResponse.MatchEnd.WINNER_BLACK);
+        } else if (winner == Color.WHITE) {
+            message = "White player wins!";
+            matchEndResponse = new GameResponse.MatchEnd(
+                reason, GameResponse.MatchEnd.WINNER_WHITE);
+        } else {
+            message = "The game ended in a draw.";
+            matchEndResponse = new GameResponse.MatchEnd(
+                reason, GameResponse.MatchEnd.WINNER_NONE);
+        }
+
+        close(black, new GameResponse<GameResponse.MatchEnd>(
+            GameResponse.STATUS_OK,
+            GameResponse.TYPE_MATCH_END,
+            message,
+            matchEndResponse));
+        
+        close(white, new GameResponse<GameResponse.MatchEnd>(
+            GameResponse.STATUS_OK,
+            GameResponse.TYPE_MATCH_END,
+            message,
+            matchEndResponse));
     }
 
     public boolean isClosed() {

@@ -25,15 +25,15 @@ public class Status extends HBox {
     private static String getColorForStatusType(StatusType type) {
         switch (type) {
             case OK:
-                return "#3cf23cff"; // Green
+                return "#3cf23cff";
             case INFO:
-                return "#dededeff"; // White
+                return "#dededeff";
             case WARNING:
-                return "#e4e433ff"; // Yellow
+                return "#e4e433ff";
             case ERROR:
-                return "#c40909ff"; // Red
+                return "#f73939ff";
             default:
-                return "#e3e3e3ff"; // Default gray
+                return "#e3e3e3ff";
         }
     }
 

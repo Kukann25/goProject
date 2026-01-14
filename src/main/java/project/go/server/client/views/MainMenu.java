@@ -8,11 +8,11 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import project.go.server.client.Client;
 import project.go.server.client.ClientListener;
+import project.go.server.client.ClientListenerThread;
 import project.go.server.client.Path;
 import project.go.server.client.Router;
 import project.go.server.client.components.Status;
 import project.go.server.client.handlers.ResponseDispatcher;
-import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 
 /**
@@ -43,11 +43,11 @@ public class MainMenu extends GridPane {
                     return;
                 }
                 Client.getInstance().getConnection().connect();
-                ClientListener.init(
+                ClientListenerThread.init(
                     Client.getInstance().getClientState(),
                     Client.getInstance().getConnection()
                 );
-                ClientListener listener = ClientListener.getInstance();
+                ClientListener listener = ClientListenerThread.getInstance().getListener();
                 ResponseDispatcher dispatcher = new ResponseDispatcher();
                 dispatcher.register(GameResponse.TYPE_PLAYER_TURN, (resp, state) -> {
                     if (resp.isError()) {

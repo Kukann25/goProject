@@ -13,4 +13,14 @@ public class App extends Application {
         Router.setPrimaryStage(primaryStage);
         Router.route(Path.HOME);
     }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        
+        SyncPrinter.info("Shutting down client...");
+        if (ClientListenerThread.getInstance() != null) {
+            ClientListenerThread.getInstance().kill();
+        }
+    }
 }

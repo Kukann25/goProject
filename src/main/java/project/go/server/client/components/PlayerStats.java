@@ -15,7 +15,5 @@ public class PlayerStats extends VBox {
         playerColorLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         
         this.getChildren().add(playerColorLabel);
-        this.setSpacing(10);
-        this.setStyle("-fx-padding: 10;-fx-background-color: #e5c683ff;");
     }
 }

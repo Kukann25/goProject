@@ -28,6 +28,10 @@ public class Client {
         return connection;
     }
 
+    public void reset() {
+        clientState.reset();
+    }
+
     public ClientState getClientState() {
         return clientState;
     }

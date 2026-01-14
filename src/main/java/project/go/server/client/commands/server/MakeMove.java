@@ -2,7 +2,6 @@ package project.go.server.client.commands.server;
 
 import project.go.server.common.json.JsonFmt;
 import project.go.server.common.json.GameCommand;
-import project.go.server.common.json.GameResponse;
 import project.go.server.client.BaseCommand;
 import project.go.server.client.ClientConn;
 import project.go.server.client.ServerCommand;

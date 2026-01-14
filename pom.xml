@@ -32,11 +32,52 @@
       <artifactId>jackson-databind</artifactId>
       <version>2.20.0</version>
     </dependency>
+
+    <!-- JavaFX -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>20</version>
+    </dependency>
   </dependencies>
 
   <build>
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
+        <!-- java fx -->
+        <plugin>
+          <groupId>org.openjfx</groupId>
+          <artifactId>javafx-maven-plugin</artifactId>
+          <version>0.0.8</version>
+          <configuration>
+            <mainClass>project.go.server.client.App</mainClass>
+          </configuration>
+        </plugin>
+
+        <!-- UML generation with javadoc -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.6.3</version>
+          
+          <configuration>
+            <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+            <doclet>nl.talsmasoftware.umldoclet.UMLDoclet</doclet>
+            <docletArtifact>
+              <groupId>nl.talsmasoftware</groupId>
+              <artifactId>umldoclet</artifactId>
+              <version>2.2.0</version>
+            </docletArtifact>
+            <!-- <additionalOptions> -->
+              <!-- Reasonable defaults; adjust as needed -->
+              <!-- <additionalOption>-inferrelationships</additionalOption>
+              <additionalOption>-hide java.*</additionalOption> -->
+              <!-- <additionalOption>-qualify</additionalOption> -->
+            <!-- </additionalOptions> -->
+          </configuration>
+        </plugin>
+
+
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>

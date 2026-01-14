@@ -63,6 +63,7 @@ public class MatchPool {
                 matchPool.execute(new MatchRunWrapper(match, matches));
             }
             Thread.sleep(100); // Avoid busy waiting
+            Thread.yield(); // Allow other threads to run
         } catch (InterruptedException e) {
             Logger.getInstance().error("MatchPool", "Matchmaker interrupted: " + e.getMessage());
         }

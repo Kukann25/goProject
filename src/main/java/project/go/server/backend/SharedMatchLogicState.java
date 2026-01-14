@@ -13,12 +13,13 @@ import project.go.applogic.SingleMove;
 public class SharedMatchLogicState {
     private Board board = new Board(Config.DEFAULT_BOARD_SIZE);
     private MoveHandler moveHandler;
-    private MatchState matchState = new MatchState();
+    private final MatchState matchState;
     private String blackMove = null;
     private String whiteMove = null;
 
-    public SharedMatchLogicState() {
+    public SharedMatchLogicState(MatchState matchState) {
         this.moveHandler = new MoveHandler(board);
+        this.matchState = matchState;
     }
     
     public MatchState getMatchState() {
@@ -41,6 +42,25 @@ public class SharedMatchLogicState {
             this.blackMove = move;
         } else if (color == Color.WHITE) {
             this.whiteMove = move;
+        }
+    }
+
+    // Resign the match for the given color
+    public void resign(Color color) {
+        if (color == Color.BLACK) {
+            matchState.setWinner(Color.WHITE);
+        } else if (color == Color.WHITE) {
+            matchState.setWinner(Color.BLACK);
+        }
+        matchState.addState(MatchState.FORFEITED);
+    }
+
+    public void passTurn(Color color) {
+        // Currently, passing does not change the board state
+        if (color == Color.BLACK) {
+            this.blackMove = "pass";
+        } else if (color == Color.WHITE) {
+            this.whiteMove = "pass";
         }
     }
 

@@ -16,6 +16,8 @@ public class SharedMatchLogicState {
     private final MatchState matchState;
     private String blackMove = null;
     private String whiteMove = null;
+    private boolean blackPassed = false;
+    private boolean whitePassed = false;
 
     public SharedMatchLogicState(MatchState matchState) {
         this.moveHandler = new MoveHandler(board);
@@ -36,6 +38,9 @@ public class SharedMatchLogicState {
         if (!moveHandler.makeMove(sm, color)) {
             throw new IllegalArgumentException("Invalid move: " + move);
         }
+
+        // Reset pass flags on valid move
+        this.blackPassed = this.whitePassed = false;
 
         // Move accepted
         if (color == Color.BLACK) {
@@ -59,14 +64,16 @@ public class SharedMatchLogicState {
         // Currently, passing does not change the board state
         if (color == Color.BLACK) {
             this.blackMove = "pass";
+            this.blackPassed = true;
         } else if (color == Color.WHITE) {
             this.whiteMove = "pass";
+            this.whitePassed = true;
         }
         this.moveHandler.pass(color);
     }
 
     public boolean checkBothPassed() {
-        return "pass".equals(this.blackMove) && "pass".equals(this.whiteMove);
+        return this.blackPassed && this.whitePassed;
     }
 
     public String popEnemyMove(Color color) {

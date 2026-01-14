@@ -60,10 +60,19 @@ public class Match implements Runnable {
             // (Always respond to both players even if it's not their turn)
             MatchLogic blackLogic = new MatchLogic(black, sharedState);
             MatchLogic whiteLogic = new MatchLogic(white, sharedState);
+            boolean notifiedPass = false;
 
             while (this.state.isOngoing()) {
                 blackLogic.handleInput();
                 whiteLogic.handleInput();
+
+                if (sharedState.checkBothPassed() && !notifiedPass) {
+                    notifiedPass = true;
+                    log("Both players passed. Starting match end negotiation.");
+                    // Notify both players about the pass situation
+                    beginNegotiationOnPass(black);
+                    beginNegotiationOnPass(white);
+                }
             }
 
         } catch(NoSuchElementException e) {
@@ -95,6 +104,19 @@ public class Match implements Runnable {
                 notifyOnGameEnd();
             }
         }
+    }
+
+    private void beginNegotiationOnPass(ClientData client) throws Exception {
+        // Notify both players that both have passed
+        PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
+
+        out.println(JsonFmt.toJson(
+            new GameResponse<Object>(
+                GameResponse.STATUS_OK,
+                GameResponse.TYPE_PASS_MOVE,
+                "Both players have passed. Match end negotiation started.",
+                null)
+        ));
     }
 
     /**

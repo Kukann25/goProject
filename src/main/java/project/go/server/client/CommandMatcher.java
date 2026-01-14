@@ -7,6 +7,7 @@ import project.go.server.client.commands.server.JoinMatch;
 import project.go.server.client.commands.server.MakeMove;
 import project.go.server.client.commands.server.PassMove;
 import project.go.server.client.commands.server.Resign;
+import project.go.server.client.commands.server.UpdateStoneStatus;
 
 /**
  * Matches command names to their implementations
@@ -44,6 +45,8 @@ public final class CommandMatcher {
                 return new Resign(args);
             case PASS:
                 return new PassMove(args);
+            case UPDATE_STONE_STATUS:
+                return new UpdateStoneStatus(args);
             default:
                 return null;
         }

@@ -74,12 +74,28 @@ public class MatchLogic {
         String otherPlayerMove = sharedState.popEnemyMove(client.getSide());
         if (otherPlayerMove != null) {
             log("Notifying player " + client.data().getClientId() + " of opponent's move: " + otherPlayerMove);
-            out.println(JsonFmt.toJson(new GameResponse<GameResponse.BoardUpdate>(
-                GameResponse.STATUS_OK,
-                GameResponse.TYPE_BOARD_UPDATE,
-                "Opponent played a move",
-                new GameResponse.BoardUpdate(otherPlayerMove)
-            )));
+            
+            // Notify player if opponent also issued a pass
+            if (otherPlayerMove.equals("pass")) {
+                boolean bothPassed = sharedState.checkBothPassed();
+                if (bothPassed) {
+                    log("Both players passed. Notifying player " + client.data().getClientId());
+                    out.println(JsonFmt.toJson(
+                        new GameResponse<GameResponse.MatchEnd>(
+                            GameResponse.STATUS_OK,
+                            GameResponse.TYPE_PASS_MOVE,
+                            "Both players passed",
+                            null)));
+                    return;
+                }
+            } else {
+                out.println(JsonFmt.toJson(new GameResponse<GameResponse.BoardUpdate>(
+                    GameResponse.STATUS_OK,
+                    GameResponse.TYPE_BOARD_UPDATE,
+                    "Opponent played a move",
+                    new GameResponse.BoardUpdate(otherPlayerMove)
+                )));
+            }
         }
     }
 }

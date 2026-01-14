@@ -62,6 +62,11 @@ public class SharedMatchLogicState {
         } else if (color == Color.WHITE) {
             this.whiteMove = "pass";
         }
+        this.moveHandler.pass(color);
+    }
+
+    public boolean checkBothPassed() {
+        return "pass".equals(this.blackMove) && "pass".equals(this.whiteMove);
     }
 
     public String popEnemyMove(Color color) {

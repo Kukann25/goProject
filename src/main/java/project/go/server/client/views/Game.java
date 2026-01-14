@@ -157,6 +157,14 @@ public class Game extends GridPane {
             });
         });
 
+        // Pass accepted Handler (opponent also passed the turn - start negotiation)
+        this.dispatcher.register(GameResponse.TYPE_PASS_MOVE, (resp, state) -> {
+            Platform.runLater(() -> {
+                statusComponent.setStatusText("Both players passed. Match end negotiation started.", Status.StatusType.INFO);
+            });
+        });
+
+        // Match End Handler
         this.dispatcher.register(GameResponse.TYPE_MATCH_END, (resp, state) -> {
             Platform.runLater(() -> {
                 if (resp.getData() instanceof GameResponse.MatchEnd) {

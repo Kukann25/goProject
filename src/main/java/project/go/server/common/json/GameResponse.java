@@ -156,6 +156,8 @@ public class GameResponse<T> {
     public final static String TYPE_BOARD_UPDATE = "board_update"; // data contains board state
     public final static String TYPE_VALID_MOVE = "valid_move"; // data contains move info
     public final static String TYPE_MATCH_END = "match_end"; // data contains match end info
+    public final static String TYPE_PASS_MOVE = "pass_move"; // both sides deciede to pass
+    public final static String TYPE_PASS_DECLIEND = "pass_move_declined"; // pass move was declined (game should resume)
 
     public final static String MESSAGE_MOVE_OK = "Move accepted";
     public final static String MESSAGE_INVALID_MOVE = "Invalid move";

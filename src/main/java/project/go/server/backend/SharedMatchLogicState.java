@@ -28,7 +28,7 @@ public class SharedMatchLogicState {
 
     public void makeMove(String move, Color color) throws IllegalArgumentException {
         SingleMove sm = MoveConverter.fromJSON(move);
-        // Invalid move
+        // Invalid move (regin)
         if (sm.getX() == -1 && sm.getY() == -1) {
             throw new IllegalArgumentException("Pass move is not supported yet");
         }

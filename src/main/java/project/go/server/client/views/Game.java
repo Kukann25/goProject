@@ -128,6 +128,14 @@ public class Game extends GridPane {
                 if (!resp.isError()) {
                     BoardUpdate data = (BoardUpdate) resp.getData();
                     MoveHandler handler = new MoveHandler(state.getBoard());
+
+                    if (data.getMove().equals("pass")) {
+                        handler.pass(state.getPlayerColor());
+                        statusComponent.setStatusText("Passed turn", Status.StatusType.INFO);
+                        SyncPrinter.info("Passed turn");
+                        return;
+                    }
+
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getPlayerColor());
                     board.update(state.getBoard());
                     statusComponent.setStatusText("Move accepted: " + data.getMove(), Status.StatusType.OK);
@@ -145,6 +153,14 @@ public class Game extends GridPane {
                 if (resp.getData() instanceof GameResponse.BoardUpdate) {
                     GameResponse.BoardUpdate data = (GameResponse.BoardUpdate) resp.getData();
                     MoveHandler handler = new MoveHandler(state.getBoard());
+
+                    if (data.getMove().equals("pass")) {
+                        handler.pass(state.getEnemyColor());
+                        statusComponent.setStatusText("Opponent passed their turn.", Status.StatusType.INFO);
+                        SyncPrinter.info("Opponent passed their turn.");
+                        return;
+                    }
+                    
                     // Make opponent move
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getEnemyColor());
                     board.update(state.getBoard());
@@ -157,10 +173,11 @@ public class Game extends GridPane {
             });
         });
 
-        // Pass accepted Handler (opponent also passed the turn - start negotiation)
+        // Pass move negotation (opponent also passed the turn - start negotiation)
         this.dispatcher.register(GameResponse.TYPE_PASS_MOVE, (resp, state) -> {
             Platform.runLater(() -> {
                 statusComponent.setStatusText("Both players passed. Match end negotiation started.", Status.StatusType.INFO);
+                SyncPrinter.info("Both players passed. Match end negotiation started.");
             });
         });
 

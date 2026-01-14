@@ -57,13 +57,16 @@ public class MatchRequestDispatcher {
             try {
                 sharedState.passTurn(client.getSide());
                 log("Player " + client.data().getClientId() + " passed their turn.");
-                return new StatusGameResponse(StatusGameResponse.STATUS_OK, "Pass move accepted.");
+                return new GameResponse<GameResponse.BoardUpdate>(
+                    StatusGameResponse.STATUS_OK,
+                    GameResponse.TYPE_VALID_MOVE,
+                    StatusGameResponse.MESSAGE_MOVE_OK,
+                    new GameResponse.BoardUpdate("pass"));
             } catch (IllegalArgumentException e) {
                 log("Invalid pass from player " + client.data().getClientId() + ": " + e.getMessage());
                 return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid pass move.");
             }
         });
-
 
         handlers.put(GameCommand.COMMAND_RESIGN, (request, sharedState, client) -> {
             try {

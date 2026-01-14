@@ -132,6 +132,8 @@ public class GameResponse<T> {
     )
     @JsonSubTypes({
         @JsonSubTypes.Type(value = Object.class, name = TYPE_STATUS),
+        @JsonSubTypes.Type(value = Object.class, name = TYPE_PASS_DECLIEND),
+        @JsonSubTypes.Type(value = Object.class, name = TYPE_PASS_MOVE),
         @JsonSubTypes.Type(value = BoardUpdate.class, name = TYPE_BOARD_UPDATE),
         @JsonSubTypes.Type(value = BoardUpdate.class, name = TYPE_VALID_MOVE),
         @JsonSubTypes.Type(value = PlayerTurn.class, name = TYPE_PLAYER_TURN),

@@ -1,8 +1,8 @@
 package project.go.applogic;
 
-public enum GroupStatus {
+public enum StoneStatus {
+    NONE,
     ALIVE,
     DEAD,
     UNKNOWN
 }
-

@@ -18,47 +18,68 @@ public class MoveHandler{
     private static final int[] DX = {-1, 1, 0, 0};
     private static final int[] DY = {0, 0, -1, 1};
 
-    private SingleMove koPoint = null;
-
     public boolean lastMoveWasPass = false;
     public boolean gameStopped = false;
 
-    private EnumMap<Color, Integer> prisoners;
-    public Map<Set<SingleMove>, GroupStatus> groupStatus;
+
+    private Color[][] koGrid;
+    private boolean lastMoveWasKoBeat = false;
+
+    private int size=Config.DEFAULT_BOARD_SIZE;
 
 
     public MoveHandler(Board board){
-        this.board=board;
-        prisoners = new EnumMap<>(Color.class);
-        prisoners.put(Color.BLACK, 0);
-        prisoners.put(Color.WHITE, 0);
-        groupStatus = new HashMap<>(); 
+        this.board=board; 
+
+        this.koGrid = new Color[size][size];
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                koGrid[i][j]=Color.NONE;
+            }
+        }
     }
-    
+
+    private void copy_grid(Color[][] boardGrid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                boardGrid[i][j]=this.board.returnCurrentState()[i][j];
+            }
+        }
+    }
+
+    private void reset_grid(Color[][] boardGrid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                boardGrid[i][j]=Color.NONE;
+            }
+        }
+    }
+
+    private void insert_grid(Color[][] grid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                this.board.returnCurrentState()[i][j]=grid[i][j];
+            }
+        }
+    }
+
+    private boolean compare_grids(Color[][] grid1, Color[][] grid2){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                if(grid1[i][j]!=grid2[i][j]){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private boolean isValid(int x, int y) {
         if (x < 0 || x >= board.getSize() || y < 0 || y >= board.getSize()) {
             return false;
         }
         return true;
     }
-
-    private List<Set<SingleMove>> findAllGroups(Color color) {
-        int size = Config.DEFAULT_BOARD_SIZE;
-        boolean[][] visited = new boolean[size][size];
-        List<Set<SingleMove>> groups = new ArrayList<>();
-
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                if (!visited[x][y] && board.returnCurrentState()[x][y] == color) {
-                    ChainResult cr = floodFill(x, y);
-                    groups.add(cr.chain);
-                    for (SingleMove p : cr.chain)
-                        visited[p.getX()][p.getY()] = true;
-                }
-            }
-        }
-        return groups;
-}
 
 
     private ChainResult floodFill(int startX, int startY){
@@ -97,12 +118,18 @@ public class MoveHandler{
     public boolean resolveAfterMove(int x, int y, Color side) {
 
         Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
-        Color[][] boardState = board.returnCurrentState();
+        Color[][] boardState;
 
         int capturedStones = 0;
-        SingleMove potentialKo = null;
 
         Set<SingleMove> checked = new HashSet<>();
+
+        if(lastMoveWasKoBeat==true){
+            boardState = new Color[size][size];
+            copy_grid(boardState);
+        }else{
+            boardState=board.returnCurrentState();
+        }
     
         for (int i = 0; i < 4; i++) {
             int nx = x + DX[i];
@@ -121,13 +148,11 @@ public class MoveHandler{
                 for (SingleMove p : enemyChain.chain) {
                     boardState[p.getX()][p.getY()] = Color.NONE;
                     capturedStones++;
-                    potentialKo = p;
                 }
             }
         }
     
         ChainResult myChain = floodFill(x, y);
-    
         if (myChain.liberties.isEmpty()) {
             for (SingleMove p : myChain.chain) {
                 boardState[p.getX()][p.getY()] = Color.NONE;
@@ -135,50 +160,23 @@ public class MoveHandler{
             return false;
         }
 
-        if (capturedStones == 1) {
-            koPoint = potentialKo;
-        } else {
-            koPoint = null;
+        if(lastMoveWasKoBeat&&compare_grids(boardState, koGrid)==true){
+            return false;
         }
-    
+        
+        if (capturedStones == 1) {
+            lastMoveWasKoBeat=true;
+            copy_grid(koGrid);
+        }
+        else{
+            lastMoveWasKoBeat=false;
+            reset_grid(koGrid);
+        }
+
+        insert_grid(boardState);
         return true;
     }
-
-    public void updateGroupStatus() {
-        groupStatus.clear();
-        for (Color color : Color.values()) {
-            if (color == Color.NONE) continue;
-            List<Set<SingleMove>> groups = findAllGroups(color);
-            for (Set<SingleMove> group : groups) {
-                groupStatus.put(group, GroupStatus.UNKNOWN);
-            }
-        }
-    }
-
-    public void removeDeadGroups() {
-        Color[][] boardState = board.returnCurrentState();
-
-        for (Map.Entry<Set<SingleMove>, GroupStatus> entry : groupStatus.entrySet()) {
-            Set<SingleMove> group = entry.getKey();
-            GroupStatus status = entry.getValue();
-
-            if (status != GroupStatus.DEAD) continue;
-
-            SingleMove any = group.iterator().next();
-            Color deadColor = boardState[any.getX()][any.getY()];
-
-            Color captor = (deadColor == Color.BLACK) ? Color.WHITE : Color.BLACK;
-
-            for (SingleMove p : group) {
-                boardState[p.getX()][p.getY()] = Color.NONE;
-                prisoners.put(captor, prisoners.get(captor) + 1);
-            }
-        }
-    }
-
-    public int getPrisoners(Color color) {
-        return prisoners.get(color);
-    }
+    
 
     public boolean makeMove(SingleMove move, Color side) {
 
@@ -195,15 +193,6 @@ public class MoveHandler{
             board.returnCurrentState()[x][y] = Color.NONE;
             return false;
         }
-
-        if (koPoint != null &&
-            koPoint.getX() == x &&
-            koPoint.getY() == y) {
-            return false;
-        }
-
-        updateGroupStatus();
-        removeDeadGroups();
 
         board.switchTurn();
         return true;

@@ -39,4 +39,8 @@ public class Board {
             currentTurn = Color.BLACK;
         }
     }
+
+    public void setCurrentTurn(Color player){
+        currentTurn = player;
+    }
 }

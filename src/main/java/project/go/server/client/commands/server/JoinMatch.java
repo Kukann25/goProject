@@ -12,6 +12,11 @@ public class JoinMatch extends BaseCommand implements ServerCommand {
     @Override
     public void execute(ClientConn connData) {
         try {
+            if (connData.isConnected()) {
+                System.out.println("Already connected to server");
+                return;
+            }
+
             connData.connect();
         } catch (Exception e) {
             e.printStackTrace();

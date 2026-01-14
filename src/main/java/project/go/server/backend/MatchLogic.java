@@ -5,33 +5,39 @@ import java.io.PrintWriter;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import project.go.applogic.Color;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
-import project.go.server.common.json.StatusGameResponse;
 import project.go.server.common.json.JsonFmt;
 
 public class MatchLogic {
     private Scanner in;
     private PrintWriter out;
-    private Match.Data client;
+    private Match.ClientData client;
     private SharedMatchLogicState sharedState;
-    private Color color;
+    private MatchRequestDispatcher dispatcher;
 
-    public MatchLogic(Match.Data client, Color color, SharedMatchLogicState state) throws IOException {
+    public MatchLogic(Match.ClientData client, SharedMatchLogicState state) throws IOException {
         this.client = client;
-        this.in = new Scanner(client.getSocket().getInputStream());
-        this.out = new PrintWriter(client.getSocket().getOutputStream(), true);
-        this.color = color;
         this.sharedState = state;
 
+        this.dispatcher = new MatchRequestDispatcher(sharedState, client);
+        this.in = new Scanner(client.getSocket().getInputStream());
+        this.out = new PrintWriter(client.getSocket().getOutputStream(), true);
+
         // Notify player of their color
+        sendPlayerTurn();
+    }
+
+    private void sendPlayerTurn() throws IOException {
+        log(client.getClientId() + " got turn: " + client.getSide());
         out.println(JsonFmt.toJson(
             new GameResponse<GameResponse.PlayerTurn>(
                 GameResponse.STATUS_OK,
                 GameResponse.TYPE_PLAYER_TURN, 
                 "Assigned player color", 
-                new GameResponse.PlayerTurn(color))));
+                new GameResponse.PlayerTurn(client.getSide()))));
     }
 
     private void log(String msg) {
@@ -50,8 +56,22 @@ public class MatchLogic {
             throw new NoSuchElementException("Socket is closed");
         }
 
+        tryNotifyOpponent();
+
+        // Non-blocking check for input
+        if (client.getSocket().getInputStream().available() == 0) {
+            return;
+        }
+
+        // Dispatch the command
+        String line = in.nextLine();
+        out.println(JsonFmt.toJson(
+            dispatcher.dispatch(JsonFmt.fromJson(line, GameCommand.class))));
+    }
+
+    private void tryNotifyOpponent() throws JsonProcessingException {
         // Notify player of opponent's move if available
-        String otherPlayerMove = sharedState.popEnemyMove(color);
+        String otherPlayerMove = sharedState.popEnemyMove(client.getSide());
         if (otherPlayerMove != null) {
             log("Notifying player " + client.data().getClientId() + " of opponent's move: " + otherPlayerMove);
             out.println(JsonFmt.toJson(new GameResponse<GameResponse.BoardUpdate>(
@@ -61,25 +81,6 @@ public class MatchLogic {
                 new GameResponse.BoardUpdate(otherPlayerMove)
             )));
         }
-
-        // Non-blocking check for input
-        if (client.getSocket().getInputStream().available() == 0) {
-            return;
-        }
-
-        // Should be either move or resign command
-        String line = in.nextLine();
-        GameCommand<?> 
-            command = JsonFmt.fromJson(line, GameCommand.class);
-        Object payload = command.getPayload();
-
-        if (payload instanceof GameCommand.PayloadMakeMove) {
-            out.println(JsonFmt.toJson(processMove((GameCommand.PayloadMakeMove) payload)));
-            return;
-        }
-
-        log("Unknown command from player " + client.data().getClientId() + ": " + command.getCommand());
-        out.println(JsonFmt.toJson(new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_UNKNOWN_COMMAND)));
     }
 
     /**
@@ -88,19 +89,19 @@ public class MatchLogic {
      * @param payload
      * @return StatusGameResponse indicating success or failure of the move.
      */
-    private GameResponse<?> processMove(GameCommand.PayloadMakeMove payload) {
-        try {
-            // Validate and apply the move using shared state
-            sharedState.makeMove(payload.getMove(), color);
-            log("Player " + client.data().getClientId() + " played move: " + payload.getMove());
-            return new GameResponse<GameResponse.BoardUpdate>(
-                StatusGameResponse.STATUS_OK,
-                GameResponse.TYPE_VALID_MOVE,
-                StatusGameResponse.MESSAGE_MOVE_OK,
-                new GameResponse.BoardUpdate(payload.getMove()));
-        }  catch (IllegalArgumentException e) {
-            log("Illegal move from player " + client.data().getClientId() + ": " + e.getMessage());
-            return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_INVALID_MOVE);
-        }
-    }
+    // private GameResponse<?> processMove(GameCommand.PayloadMakeMove payload) {
+    //     try {
+    //         // Validate and apply the move using shared state
+    //         sharedState.makeMove(payload.getMove(), client.getSide());
+    //         log("Player " + client.data().getClientId() + " played move: " + payload.getMove());
+    //         return new GameResponse<GameResponse.BoardUpdate>(
+    //             StatusGameResponse.STATUS_OK,
+    //             GameResponse.TYPE_VALID_MOVE,
+    //             StatusGameResponse.MESSAGE_MOVE_OK,
+    //             new GameResponse.BoardUpdate(payload.getMove()));
+    //     }  catch (IllegalArgumentException e) {
+    //         log("Illegal move from player " + client.data().getClientId() + ": " + e.getMessage());
+    //         return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, StatusGameResponse.MESSAGE_INVALID_MOVE);
+    //     }
+    // }
 }

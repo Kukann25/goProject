@@ -7,11 +7,11 @@ Super świetny projekt gry GO w java
 Klient
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="project.go.App" -Dexec.args="client"
+mvn javafx:run
 ```
 
 Serwer
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="project.go.App" -Dexec.args="server"
+mvn compile exec:java -Dexec.mainClass="project.go.App"
 ```

@@ -83,7 +83,7 @@ public class ClientConn {
             }
             return line;
         } catch (IOException e) {
-            System.err.println("Error reading from server: " + e.getMessage());
+            System.err.println("[ClientConn] Error reading from server: " + e.getMessage());
             return null;
         }
     }

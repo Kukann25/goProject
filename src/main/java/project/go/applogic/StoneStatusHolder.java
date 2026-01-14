@@ -2,6 +2,9 @@ package project.go.applogic;
 
 import project.go.Config;
 
+/**
+ * Class StoneStatusHolder manages statuses of stones on the board
+ */
 public class StoneStatusHolder {
 
     private StoneStatus[][] stoneStatusGrid;

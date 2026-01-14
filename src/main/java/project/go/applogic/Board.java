@@ -2,6 +2,9 @@ package project.go.applogic;
 
 import project.go.Config;
 
+/**
+ * Class board contains one board for each game
+ */
 public class Board {
 
     private Color currentTurn;
@@ -32,6 +35,9 @@ public class Board {
         return currentTurn;
     }
 
+    /**
+     * Switches to the other player
+     */
     public void switchTurn() {
         if (currentTurn == Color.BLACK) {
             currentTurn = Color.WHITE;

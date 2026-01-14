@@ -1,5 +1,8 @@
 package project.go.applogic;
 
+/**
+ * Class singleMove contains a tuplet of coordinates
+ */
 public class SingleMove {
     private int x;
     private int y;
@@ -23,18 +26,5 @@ public class SingleMove {
 
     public void setY(int y){
         this.y=y;
-    }
-
-    @Override
-    public boolean equals(Object o){
-        if(this==o) return true;
-        if(!(o instanceof SingleMove)) return false;
-        SingleMove move = (SingleMove) o;
-        return x==move.x && y==move.y;
-    }
-
-    @Override
-    public int hashCode(){
-        return 31*x + y;
     }
 }

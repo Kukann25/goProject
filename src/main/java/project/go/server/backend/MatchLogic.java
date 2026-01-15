@@ -46,7 +46,6 @@ public class MatchLogic {
 
     /**
      * Handles input from a player client, it's non-blocking.
-     * @return GameResponse indicating the result of the command.
      * @throws Exception Internal error processing the command.
      * @throws NoSuchElementException If the input is closed.
      */

@@ -3,6 +3,7 @@ package project.go.server.common.json;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match;
 
 import project.go.applogic.Color;
 
@@ -82,6 +83,8 @@ public class GameResponse<T> {
 
         private String reason; // e.g., "forfeit", "normal" or "error"
         private String winner = WINNER_NONE; // "black", "white", or "none" for draw
+        private int scoreBlack = 0;
+        private int scoreWhite = 0;
 
         public MatchEnd() {}
         public MatchEnd(String reason, String winner) {
@@ -89,8 +92,20 @@ public class GameResponse<T> {
             this.winner = winner;
         }
 
+        public MatchEnd(String reason, String winner, int scoreBlack, int scoreWhite) {
+            this.reason = reason;
+            this.winner = winner;
+            this.scoreBlack = scoreBlack;
+            this.scoreWhite = scoreWhite;
+        }
+
         public String getReason() { return reason; }
         public String getWinner() { return winner; }
+        public int getScoreBlack() { return scoreBlack; }
+        public int getScoreWhite() { return scoreWhite; }
+        
+        public void setScoreBlack(int scoreBlack) { this.scoreBlack = scoreBlack; }
+        public void setScoreWhite(int scoreWhite) { this.scoreWhite = scoreWhite; }
         public void setReason(String reason) { this.reason = reason; }
         public void setWinner(String winner) { this.winner = winner; }
 

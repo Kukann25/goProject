@@ -328,6 +328,9 @@ public class Game extends GridPane {
 
                     project.go.applogic.Color myColor = state.getPlayerColor();
                     project.go.applogic.Color winnerColor = data.getWinnerColor();
+                    int scoreBlack = data.getScoreBlack();;
+                    int scoreWhite = data.getScoreWhite();
+
                     String resultTitle = "Match Ended";
                     String outcomeText;
                     if (winnerColor == null) {
@@ -344,7 +347,8 @@ public class Game extends GridPane {
                     Text header = new Text(outcomeText);
                     header.setStyle("-fx-font-size: 20pt; -fx-font-weight: bold;");
 
-                    Text info = new Text("Reason: " + data.getReason() + "\nWinner: " + data.getWinner());
+                    Text info = new Text("Reason: " + data.getReason() + "\nWinner: " + data.getWinner() +
+                        "\nFinal Score - Black: " + scoreBlack + " | White: " + scoreWhite);
                     info.setStyle("-fx-text-alignment: center;");
 
                     Button okButton = new Button("OK");

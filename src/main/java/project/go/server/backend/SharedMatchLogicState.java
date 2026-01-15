@@ -160,6 +160,17 @@ public class SharedMatchLogicState {
         }
     }
 
+    public StoneStatusHolder getBlackProposal() {
+        return blackProposal;
+    }
+
+    public StoneStatusHolder getWhiteProposal() {
+        return whiteProposal;
+    }
+
+    public MoveHandler getMoveHandler() {
+        return moveHandler;
+    }
 
     public boolean checkAgreement() {
         if (blackProposal == null || whiteProposal == null) return false;

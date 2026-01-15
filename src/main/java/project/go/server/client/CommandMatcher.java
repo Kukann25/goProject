@@ -1,7 +1,5 @@
 package project.go.server.client;
 
-import project.go.server.client.commands.local.Exit;
-import project.go.server.client.commands.local.Help;
 import project.go.server.client.commands.server.Disconnect;
 import project.go.server.client.commands.server.JoinMatch;
 import project.go.server.client.commands.server.MakeMove;
@@ -16,10 +14,6 @@ import project.go.server.client.commands.server.UpdateStoneStatus;
 public final class CommandMatcher {
     private CommandMatcher() {
         // no instances
-    }
-
-    public static boolean isLocalCommand(String name) {
-        return getLocalCommand(name, null) != null;
     }
 
     public static boolean isServerCommand(String name) {
@@ -50,26 +44,6 @@ public final class CommandMatcher {
                 return new ResumeGame(args);
             case UPDATE_STONE_STATUS:
                 return new UpdateStoneStatus(args);
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Get local command by name (the one that interacts with the client's state only)
-     */
-    public static LocalCommand getLocalCommand(String name, String[] args) {
-        CommandName commandName = CommandName.fromString(name);
-        if (commandName == null) {
-            return null;
-        }
-
-        switch (commandName) {
-            case EXIT:
-            case QUIT:
-                return new Exit(args);
-            case HELP:
-                return new Help(args);
             default:
                 return null;
         }

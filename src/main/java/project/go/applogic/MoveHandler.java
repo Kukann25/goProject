@@ -267,6 +267,9 @@ public class MoveHandler extends Handler{
         board.setCurrentTurn(requestingPlayer);
     }
 
+    /**
+     * Funcition resolvePoints for calculating points
+     */
     public void resolvePoints(){
         pointHandler.calculateTerritoryPoints();
     }

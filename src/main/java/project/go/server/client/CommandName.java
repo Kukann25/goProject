@@ -14,6 +14,7 @@ public enum CommandName {
     MAKE_MOVE(GameCommand.COMMAND_MAKE_MOVE, "Make a move at specified coordinates. Usage: make-move <xx><yy> (e.g., make-move 0312 for x=3, y=12)"),
     RESIGN(GameCommand.COMMAND_RESIGN, "Resign from the current match"),
     PASS(GameCommand.COMMAND_PASS, "Pass your turn in the current match"),
+    resume(GameCommand.COMMAND_RESUME, "Resume the game from negotiation phase"),
     UPDATE_STONE_STATUS(GameCommand.COMMAND_CHANGE_STONE_STATUS, "Update the status of stones on the board");
 
     private final String commandName;

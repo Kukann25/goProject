@@ -70,6 +70,7 @@ public class GameCommand<T> {
     public static final String COMMAND_PASS = "pass";
     public static final String COMMAND_RESIGN = "resign";
     public static final String COMMAND_CHANGE_STONE_STATUS = "change-stone-status";
+    public static final String COMMAND_RESUME = "resume";
 
 
     private String command;
@@ -85,7 +86,8 @@ public class GameCommand<T> {
         @JsonSubTypes.Type(value = PayloadMakeMove.class, name = COMMAND_MAKE_MOVE),
         @JsonSubTypes.Type(value = ChangeStoneStatus.class, name = COMMAND_CHANGE_STONE_STATUS),
         @JsonSubTypes.Type(value = Object.class, name = COMMAND_PASS), // no payload
-        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESIGN) // no payload
+        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESIGN), // no payload
+        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESUME)  // no payload
     })
     private T payload;
 

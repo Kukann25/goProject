@@ -21,4 +21,23 @@ public class StoneStatusHolder {
     public StoneStatus[][] returnStoneStatus(){
         return stoneStatusGrid;
     }
+
+    public void updateStatus(int x, int y, StoneStatus status) {
+        if (x >= 0 && x < stoneStatusGrid.length && y >= 0 && y < stoneStatusGrid.length) {
+            stoneStatusGrid[x][y] = status;
+        }
+    }
+
+    public boolean equals(StoneStatusHolder other) {
+        if (other == null) return false;
+        StoneStatus[][] otherGrid = other.returnStoneStatus();
+        for(int i=0;i<stoneStatusGrid.length;i++){
+            for(int j=0;j<stoneStatusGrid[i].length;j++){
+                if (stoneStatusGrid[i][j] != otherGrid[i][j]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }

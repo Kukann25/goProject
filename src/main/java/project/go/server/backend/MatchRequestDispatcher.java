@@ -6,6 +6,9 @@ import java.util.Map;
 import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.StatusGameResponse;
+import project.go.applogic.StoneStatus;
+
+import project.go.server.common.json.GameCommand.ChangeStoneStatus;
 
 public class MatchRequestDispatcher {
     public final Map<String, MatchRequestHandler> handlers = new HashMap<>();
@@ -78,6 +81,56 @@ public class MatchRequestDispatcher {
             } catch (IllegalArgumentException e) {
                 log("Invalid resignation from player " + client.data().getClientId() + ": " + e.getMessage());
                 return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid resignation.");
+            }
+        });
+
+        handlers.put(GameCommand.COMMAND_RESUME, (request, sharedState, client) -> {
+            sharedState.resumeGame(client.getSide());
+            log("Player " + client.data().getClientId() + " resumed the game.");
+            return new GameResponse<>(
+                StatusGameResponse.STATUS_OK,
+                GameResponse.TYPE_GAME_RESUMED,
+                GameResponse.MESSAGE_GAME_RESUMED,
+                null
+            );
+        });
+
+        handlers.put(GameCommand.COMMAND_CHANGE_STONE_STATUS, (request, sharedState, client) -> {
+            Object payload = request.getPayload();
+            if (!(payload instanceof ChangeStoneStatus)) {
+                return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid payload for stone status change");
+            }
+            ChangeStoneStatus statusPayload = (ChangeStoneStatus) payload;
+            String pos = statusPayload.getPosition();
+            
+            if ("all".equalsIgnoreCase(pos)) {
+                sharedState.updateStatus(client.getSide(), -1, -1, StoneStatus.ALIVE);
+                if (sharedState.checkAgreement()) {
+                    log("Players agreed on stone status (via all-alive). Ending match.");
+                    sharedState.getMatchState().addState(MatchState.COMPLETED);
+                }
+                return new StatusGameResponse(StatusGameResponse.STATUS_OK, "All stones marked alive");
+            }
+
+            String[] parts = pos.split("-");
+            if (parts.length != 2) {
+                return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid position format");
+            }
+
+            try {
+                int x = Integer.parseInt(parts[0]);
+                int y = Integer.parseInt(parts[1]);
+                
+                sharedState.updateStatus(client.getSide(), x, y, statusPayload.toStoneStatus());
+                
+                if (sharedState.checkAgreement()) {
+                    log("Players agreed on stone status. Ending match.");
+                    sharedState.getMatchState().addState(MatchState.COMPLETED);
+                }
+
+                return new StatusGameResponse(StatusGameResponse.STATUS_OK, "Status updated");
+            } catch (NumberFormatException e) {
+                return new StatusGameResponse(StatusGameResponse.STATUS_ERROR, "Invalid coordinates");
             }
         });
     }

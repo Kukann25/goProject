@@ -68,10 +68,15 @@ public class Match implements Runnable {
 
                 if (sharedState.checkBothPassed() && !notifiedPass) {
                     notifiedPass = true;
+                    sharedState.initNegotiation();
                     log("Both players passed. Starting match end negotiation.");
                     // Notify both players about the pass situation
                     beginNegotiationOnPass(black);
                     beginNegotiationOnPass(white);
+                } else if (!sharedState.checkBothPassed() && notifiedPass) {
+                    // If negotiation was ongoing but now one player made a move, resume the game
+                    notifiedPass = false;
+                    log("Negotiation cancelled. Resuming game.");
                 }
             }
 

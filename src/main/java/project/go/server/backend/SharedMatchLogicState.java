@@ -6,6 +6,11 @@ import project.go.applogic.Color;
 import project.go.applogic.MoveConverter;
 import project.go.applogic.MoveHandler;
 import project.go.applogic.SingleMove;
+import project.go.applogic.StoneStatus;
+import project.go.applogic.StoneStatusHolder;
+import project.go.server.common.json.GameResponse;
+import java.util.Queue;
+import java.util.LinkedList;
 
 /**
  * Shared state between match logic instances (for both players).
@@ -18,6 +23,12 @@ public class SharedMatchLogicState {
     private String whiteMove = null;
     private boolean blackPassed = false;
     private boolean whitePassed = false;
+    private Color resumedBy = null;
+
+    private StoneStatusHolder blackProposal;
+    private StoneStatusHolder whiteProposal;
+    private Queue<GameResponse.StoneStatusUpdate> blackPendingUpdates = new LinkedList<>();
+    private Queue<GameResponse.StoneStatusUpdate> whitePendingUpdates = new LinkedList<>();
 
     public SharedMatchLogicState(MatchState matchState) {
         this.moveHandler = new MoveHandler(board);
@@ -74,6 +85,93 @@ public class SharedMatchLogicState {
 
     public boolean checkBothPassed() {
         return this.blackPassed && this.whitePassed;
+    }
+
+    public void resumeGame(Color requestingPlayer) {
+        this.blackPassed = false;
+        this.whitePassed = false;
+        this.blackProposal = null;
+        this.whiteProposal = null;
+        this.blackPendingUpdates.clear();
+        this.whitePendingUpdates.clear();
+        
+        moveHandler.resumeGame(requestingPlayer);
+        this.resumedBy = requestingPlayer;
+    }
+
+    public Color popResumed() {
+        Color c = this.resumedBy;
+        this.resumedBy = null;
+        return c;
+    }
+
+    public void initNegotiation() {
+        this.blackProposal = new StoneStatusHolder(board);
+        this.whiteProposal = new StoneStatusHolder(board);
+    }
+
+    public void updateStatus(Color color, int x, int y, StoneStatus status) {
+        // If x=-1 and y=-1, treat as "All Alive" request
+        if (x == -1 && y == -1) {
+            updateAllStatus(color, StoneStatus.ALIVE);
+            return;
+        }
+
+        String sideStr = (color == Color.BLACK) ? "black" : "white";
+        // Update the proposal
+        if (color == Color.BLACK) {
+            blackProposal.updateStatus(x, y, status);
+        } else {
+            whiteProposal.updateStatus(x, y, status);
+        }
+        
+        // Notify the opponent
+        String statusStr = (status == StoneStatus.ALIVE) ? "alive" : (status == StoneStatus.DEAD) ? "dead" : "unknown";
+        GameResponse.StoneStatusUpdate update = new GameResponse.StoneStatusUpdate(
+            x + "-" + y, statusStr, sideStr
+        );
+
+        if (color == Color.BLACK) {
+            whitePendingUpdates.add(update);
+        } else {
+            blackPendingUpdates.add(update);
+        }
+    }
+
+    private void updateAllStatus(Color color, StoneStatus status) {
+        String sideStr = (color == Color.BLACK) ? "black" : "white";
+        String statusStr = (status == StoneStatus.ALIVE) ? "alive" : (status == StoneStatus.DEAD) ? "dead" : "unknown";
+        
+        StoneStatusHolder proposal = (color == Color.BLACK) ? blackProposal : whiteProposal;
+        Queue<GameResponse.StoneStatusUpdate> updates = (color == Color.BLACK) ? whitePendingUpdates : blackPendingUpdates;
+        
+        project.go.applogic.Color[][] cells = board.returnCurrentState();
+        int size = board.getSize();
+        
+        for(int i=0; i<size; i++) {
+            for(int j=0; j<size; j++) {
+                if(cells[i][j] != project.go.applogic.Color.NONE) {
+                    proposal.updateStatus(i, j, status);
+                    updates.add(new GameResponse.StoneStatusUpdate(
+                        i + "-" + j, statusStr, sideStr
+                    ));
+                }
+            }
+        }
+    }
+
+
+    public boolean checkAgreement() {
+        if (blackProposal == null || whiteProposal == null) return false;
+        return blackProposal.equals(whiteProposal);
+    }
+
+    public GameResponse.StoneStatusUpdate popEnemyStatusUpdate(Color color) {
+        if (color == Color.BLACK) {
+            return blackPendingUpdates.poll();
+        } else {
+            return whitePendingUpdates.poll();
+        }
     }
 
     public String popEnemyMove(Color color) {

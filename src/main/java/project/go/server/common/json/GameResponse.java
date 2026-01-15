@@ -120,6 +120,26 @@ public class GameResponse<T> {
         }
     }
 
+    public static class StoneStatusUpdate {
+        private String position; // "x-y"
+        private String status; // "alive", "dead", "unknown"
+        private String side; // "black", "white"
+
+        public StoneStatusUpdate() {}
+        public StoneStatusUpdate(String position, String status, String side) {
+            this.position = position;
+            this.status = status;
+            this.side = side;
+        }
+
+        public String getPosition() { return position; }
+        public void setPosition(String position) { this.position = position; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getSide() { return side; }
+        public void setSide(String side) { this.side = side; }
+    }
+
     private int status; // First bit OK/Error, other bits verbose flags
     private String type;
     private String message;
@@ -138,6 +158,8 @@ public class GameResponse<T> {
         @JsonSubTypes.Type(value = BoardUpdate.class, name = TYPE_VALID_MOVE),
         @JsonSubTypes.Type(value = PlayerTurn.class, name = TYPE_PLAYER_TURN),
         @JsonSubTypes.Type(value = MatchEnd.class, name = TYPE_MATCH_END),
+        @JsonSubTypes.Type(value = StoneStatusUpdate.class, name = TYPE_STONE_STATUS_UPDATE),
+        @JsonSubTypes.Type(value = Object.class, name = TYPE_GAME_RESUMED)
     })
     private T data;
 
@@ -160,8 +182,12 @@ public class GameResponse<T> {
     public final static String TYPE_MATCH_END = "match_end"; // data contains match end info
     public final static String TYPE_PASS_MOVE = "pass_move"; // both sides deciede to pass
     public final static String TYPE_PASS_DECLIEND = "pass_move_declined"; // pass move was declined (game should resume)
+    public final static String TYPE_STONE_STATUS_UPDATE = "stone_status_update";
+    public final static String TYPE_GAME_RESUMED = "game_resumed";
 
     public final static String MESSAGE_MOVE_OK = "Move accepted";
+    public final static String MESSAGE_GAME_RESUMED = "Game resumed";
+
     public final static String MESSAGE_INVALID_MOVE = "Invalid move";
     public final static String MESSAGE_NOT_YOUR_TURN = "Not your turn";
     public final static String MESSAGE_INTERNAL_ERROR = "Internal error";

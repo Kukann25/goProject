@@ -241,6 +241,21 @@ public class MoveHandler extends Handler{
         pointHandler.addPoints(1, side);
     }
 
+    /**
+     * Function removeStones to remove stones after negotiations
+     * @param statusHolder holds grid of stone statuses
+     */
+    public void removeStones(StoneStatusHolder statusHolder){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                if(statusHolder.returnStoneStatus()[i][j]==StoneStatus.DEAD){
+                    pointHandler.addPoints(1, board.returnCurrentState()[i][j]);
+                    board.returnCurrentState()[i][j]=Color.NONE;
+                }
+            }
+        }
+    }
+
 
     /**
      * function for passing (useful in tests)

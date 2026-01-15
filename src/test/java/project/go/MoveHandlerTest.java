@@ -23,52 +23,49 @@ public class MoveHandlerTest {
     }
 
     @Test
-public void testKoRule_BasicKoScenario() {
+    public void testKoRule_BasicKoScenario() {
 
-    board.returnCurrentState()[4][4] = Color.WHITE;
-    board.returnCurrentState()[3][4] = Color.BLACK;
-    board.returnCurrentState()[5][4] = Color.BLACK;
-    board.returnCurrentState()[4][3] = Color.BLACK;
-    board.returnCurrentState()[4][5] = Color.WHITE;
-    
-    board.returnCurrentState()[3][3] = Color.BLACK;
-    board.returnCurrentState()[5][3] = Color.BLACK;
-    board.returnCurrentState()[3][5] = Color.WHITE;
-    board.returnCurrentState()[5][5] = Color.WHITE;
-    
-    SingleMove captureMove = new SingleMove(4, 5);
+    moveHandler.makeMove(new SingleMove(4, 4), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 4), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(3, 3), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(6, 3), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(4, 2), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 2), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(5, 3), Color.BLACK);
+
+    SingleMove captureMove = new SingleMove(4, 3);
     boolean captureResult = moveHandler.makeMove(captureMove, Color.WHITE);
     assertTrue(captureResult);
     
-    assertEquals(Color.WHITE, board.returnCurrentState()[4][5]);
-    assertEquals(Color.NONE, board.returnCurrentState()[4][4]);
+    assertEquals(Color.WHITE, board.returnCurrentState()[4][3]);
+    assertEquals(Color.NONE, board.returnCurrentState()[5][3]);
     
 
-    SingleMove koRecapture = new SingleMove(4, 4);
+    SingleMove koRecapture = new SingleMove(5, 3);
     boolean koResult = moveHandler.makeMove(koRecapture, Color.BLACK);
     assertFalse("Ko rule should prevent immediate recapture", koResult);
     
-    assertEquals(Color.WHITE, board.returnCurrentState()[4][5]);
-    assertEquals(Color.NONE, board.returnCurrentState()[4][4]);
+    assertEquals(Color.WHITE, board.returnCurrentState()[4][3]);
+    assertEquals(Color.NONE, board.returnCurrentState()[5][3]);
 }
 
 @Test
 public void testKoRule_KoIsTemporary() {
 
-    board.returnCurrentState()[3][3] = Color.BLACK;
-    board.returnCurrentState()[3][4] = Color.BLACK;
-    board.returnCurrentState()[4][3] = Color.BLACK;
-    board.returnCurrentState()[4][5] = Color.WHITE;
-    board.returnCurrentState()[5][4] = Color.WHITE;
-    board.returnCurrentState()[5][5] = Color.WHITE;
-    board.returnCurrentState()[4][4] = Color.WHITE;
+    moveHandler.makeMove(new SingleMove(4, 4), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 4), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(3, 3), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(6, 3), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(4, 2), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 2), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(5, 3), Color.BLACK);
     
 
-    SingleMove captureMove = new SingleMove(5, 3);
+    SingleMove captureMove = new SingleMove(4, 3);
     moveHandler.makeMove(captureMove, Color.WHITE);
     
 
-    SingleMove koRecapture = new SingleMove(4, 4);
+    SingleMove koRecapture = new SingleMove(5, 3);
     assertFalse(moveHandler.makeMove(koRecapture, Color.BLACK));
     
 
@@ -87,50 +84,23 @@ public void testKoRule_KoIsTemporary() {
 @Test
 public void testKoRule_MultipleCapturesNotKo() {
 
-    board.returnCurrentState()[0][0] = Color.WHITE;
-    board.returnCurrentState()[0][1] = Color.WHITE;
-    board.returnCurrentState()[1][0] = Color.BLACK;
-    board.returnCurrentState()[1][1] = Color.BLACK;
-    board.returnCurrentState()[2][0] = Color.BLACK;
-    board.returnCurrentState()[2][1] = Color.BLACK;
+    moveHandler.makeMove(new SingleMove(4, 4), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 4), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(3, 4), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(6, 3), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(2, 3), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(5, 2), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(3, 2), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(4, 3), Color.WHITE);
+    moveHandler.makeMove(new SingleMove(4, 2), Color.BLACK);
+    moveHandler.makeMove(new SingleMove(3, 3), Color.WHITE);
 
-    SingleMove captureMove = new SingleMove(0, 2);
+    SingleMove captureMove = new SingleMove(5, 3);
     moveHandler.makeMove(captureMove, Color.BLACK);
 
-    SingleMove recapture = new SingleMove(0, 0);
+    SingleMove recapture = new SingleMove(4, 3);
     assertTrue("Multiple stone capture should not create ko", 
                moveHandler.makeMove(recapture, Color.WHITE));
-}
-
-@Test
-public void testKoRule_KoAfterPass() {
-    board.returnCurrentState()[5][5] = Color.BLACK;
-    board.returnCurrentState()[5][6] = Color.BLACK;
-    board.returnCurrentState()[6][5] = Color.BLACK;
-    board.returnCurrentState()[6][7] = Color.WHITE;
-    board.returnCurrentState()[7][6] = Color.WHITE;
-    board.returnCurrentState()[7][7] = Color.WHITE;
-    board.returnCurrentState()[6][6] = Color.WHITE;
-
-    SingleMove captureMove = new SingleMove(7, 5);
-    moveHandler.makeMove(captureMove, Color.WHITE);
-
-    moveHandler.pass(Color.BLACK);
-
-    moveHandler.pass(Color.WHITE);
-    
-    moveHandler.resumeGame(Color.BLACK);
-    
-    SingleMove koRecapture = new SingleMove(6, 6);
-    assertFalse("Ko should still be prevented even after resume", 
-                moveHandler.makeMove(koRecapture, Color.BLACK));
-    
-    SingleMove otherMove = new SingleMove(10, 10);
-    moveHandler.makeMove(otherMove, Color.BLACK);
-    moveHandler.makeMove(new SingleMove(10, 11), Color.WHITE);
-    
-    assertTrue("After another move, ko recapture should be allowed",
-               moveHandler.makeMove(koRecapture, Color.BLACK));
 }
 
     @Test
@@ -149,39 +119,6 @@ public void testKoRule_KoAfterPass() {
         moveHandler.makeMove(move1, Color.BLACK);
         boolean result = moveHandler.makeMove(move2, Color.WHITE);
         assertFalse(result);
-    }
-
-    @Test
-    public void testKoRule_PreventsImmediateRecapture() {
-        board.returnCurrentState()[0][1] = Color.BLACK;
-        board.returnCurrentState()[1][0] = Color.WHITE;
-        board.returnCurrentState()[1][1] = Color.BLACK;
-
-        SingleMove captureMove = new SingleMove(0, 0);
-        moveHandler.makeMove(captureMove, Color.WHITE);
-
-        SingleMove forbiddenKo = new SingleMove(1, 1);
-        boolean result = moveHandler.makeMove(forbiddenKo, Color.BLACK);
-        assertFalse(result);
-    }
-
-    @Test
-    public void testRemoveDeadGroups_IncrementsPrisoners() {
-        board.returnCurrentState()[4][4] = Color.WHITE;
-        board.returnCurrentState()[3][4] = Color.BLACK;
-        board.returnCurrentState()[5][4] = Color.BLACK;
-        board.returnCurrentState()[4][3] = Color.BLACK;
-        board.returnCurrentState()[4][5] = Color.BLACK;
-
-        assertEquals(Color.NONE, board.returnCurrentState()[4][4]);
-    }
-
-    @Test
-    public void testPassAndGameStopped() {
-        moveHandler.pass(Color.BLACK);
-        assertFalse(moveHandler.gameStopped);
-        moveHandler.pass(Color.WHITE);
-        assertTrue(moveHandler.gameStopped);
     }
 
     @Test

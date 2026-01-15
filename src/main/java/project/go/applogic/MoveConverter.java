@@ -2,6 +2,9 @@ package project.go.applogic;
 
 import project.go.server.backend.Logger;
 
+/**
+ * Class MoveConverter converts a string input from a server into move and vice versa
+ */
 public abstract class MoveConverter {
 
     public static String toJSON(SingleMove singleMove){

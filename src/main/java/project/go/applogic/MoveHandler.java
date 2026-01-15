@@ -1,66 +1,103 @@
 package project.go.applogic;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
 import project.go.Config;
 
-public class MoveHandler{
+/**
+ * Class MoveHandler handles every move of each player
+ */
 
-    private Board board;
-
-    private static final int[] DX = {-1, 1, 0, 0};
-    private static final int[] DY = {0, 0, -1, 1};
-
-    private SingleMove koPoint = null;
+public class MoveHandler extends Handler{
 
     public boolean lastMoveWasPass = false;
     public boolean gameStopped = false;
 
-    private EnumMap<Color, Integer> prisoners;
-    public Map<Set<SingleMove>, GroupStatus> groupStatus;
+    private Color[][] koGrid;
+    private boolean lastMoveWasKoBeat = false;
 
+    private int size=Config.DEFAULT_BOARD_SIZE;
 
+    private PointHandler pointHandler;
+
+    /**
+     * 
+     * @param board each board has its own movehandler
+     */
     public MoveHandler(Board board){
-        this.board=board;
-        prisoners = new EnumMap<>(Color.class);
-        prisoners.put(Color.BLACK, 0);
-        prisoners.put(Color.WHITE, 0);
-        groupStatus = new HashMap<>(); 
+        this.board=board; 
+
+        pointHandler = new PointHandler(board);
+
+        this.koGrid = new Color[size][size];
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                koGrid[i][j]=Color.NONE;
+            }
+        }
     }
-    
-    private boolean isValid(int x, int y) {
-        if (x < 0 || x >= board.getSize() || y < 0 || y >= board.getSize()) {
-            return false;
+
+    /**
+     * Function copy_grid that copies board into temporary array (needed for ko check)
+     * @param boardGrid temporary array to copy
+     */
+    private void copy_grid(Color[][] boardGrid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                boardGrid[i][j]=this.board.returnCurrentState()[i][j];
+            }
+        }
+    }
+
+    /**
+     * Function copy_grid that resets temporary array (needed for ko check)
+     * @param boardGrid temporary array to copy
+     */
+    private void reset_grid(Color[][] boardGrid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                boardGrid[i][j]=Color.NONE;
+            }
+        }
+    }
+
+    /**
+     * Function insert_grid that inserts temporary array into board (needed for ko check)
+     * @param grid grid from which we will insert
+     */
+    private void insert_grid(Color[][] grid){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                this.board.returnCurrentState()[i][j]=grid[i][j];
+            }
+        }
+    }
+
+    /**
+     * grid comparator for ko checking
+     * @param grid1
+     * @param grid2
+     * @return true if they are equal false if not
+     */
+    private boolean compare_grids(Color[][] grid1, Color[][] grid2){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                if(grid1[i][j]!=grid2[i][j]){
+                    return false;
+                }
+            }
         }
         return true;
     }
 
-    private List<Set<SingleMove>> findAllGroups(Color color) {
-        int size = Config.DEFAULT_BOARD_SIZE;
-        boolean[][] visited = new boolean[size][size];
-        List<Set<SingleMove>> groups = new ArrayList<>();
-
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                if (!visited[x][y] && board.returnCurrentState()[x][y] == color) {
-                    ChainResult cr = floodFill(x, y);
-                    groups.add(cr.chain);
-                    for (SingleMove p : cr.chain)
-                        visited[p.getX()][p.getY()] = true;
-                }
-            }
-        }
-        return groups;
-}
-
-
+    /**
+     * FloodFill algorithm for checking chains od stones
+     * @param startX
+     * @param startY
+     * @return ChainResult class that contains set of all chains and set of all liberties
+     */
     private ChainResult floodFill(int startX, int startY){
         Color color = board.returnCurrentState()[startX][startY];
 
@@ -94,15 +131,28 @@ public class MoveHandler{
         return result;
     }
 
+    /**
+     * Function resolveAfterMove that proceeds FloodFill and checks for ko.
+     * @param x
+     * @param y
+     * @param side
+     * @return whether move was correct
+     */
     public boolean resolveAfterMove(int x, int y, Color side) {
 
         Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
-        Color[][] boardState = board.returnCurrentState();
+        Color[][] boardState;
 
         int capturedStones = 0;
-        SingleMove potentialKo = null;
 
         Set<SingleMove> checked = new HashSet<>();
+
+        if(lastMoveWasKoBeat==true){
+            boardState = new Color[size][size];
+            copy_grid(boardState);
+        }else{
+            boardState=board.returnCurrentState();
+        }
     
         for (int i = 0; i < 4; i++) {
             int nx = x + DX[i];
@@ -121,13 +171,11 @@ public class MoveHandler{
                 for (SingleMove p : enemyChain.chain) {
                     boardState[p.getX()][p.getY()] = Color.NONE;
                     capturedStones++;
-                    potentialKo = p;
                 }
             }
         }
     
         ChainResult myChain = floodFill(x, y);
-    
         if (myChain.liberties.isEmpty()) {
             for (SingleMove p : myChain.chain) {
                 boardState[p.getX()][p.getY()] = Color.NONE;
@@ -135,51 +183,33 @@ public class MoveHandler{
             return false;
         }
 
-        if (capturedStones == 1) {
-            koPoint = potentialKo;
-        } else {
-            koPoint = null;
+        if(lastMoveWasKoBeat&&compare_grids(boardState, koGrid)==true){
+            return false;
         }
-    
+        
+        if (capturedStones == 1) {
+            lastMoveWasKoBeat=true;
+            copy_grid(koGrid);
+        }
+        else{
+            lastMoveWasKoBeat=false;
+            reset_grid(koGrid);
+        }
+
+        insert_grid(boardState);
+        pointHandler.addPoints(capturedStones, side);
+        //System.out.println(pointHandler.whitePoints());
+        //System.out.println(pointHandler.blackPoints());
         return true;
     }
+    
 
-    public void updateGroupStatus() {
-        groupStatus.clear();
-        for (Color color : Color.values()) {
-            if (color == Color.NONE) continue;
-            List<Set<SingleMove>> groups = findAllGroups(color);
-            for (Set<SingleMove> group : groups) {
-                groupStatus.put(group, GroupStatus.UNKNOWN);
-            }
-        }
-    }
-
-    public void removeDeadGroups() {
-        Color[][] boardState = board.returnCurrentState();
-
-        for (Map.Entry<Set<SingleMove>, GroupStatus> entry : groupStatus.entrySet()) {
-            Set<SingleMove> group = entry.getKey();
-            GroupStatus status = entry.getValue();
-
-            if (status != GroupStatus.DEAD) continue;
-
-            SingleMove any = group.iterator().next();
-            Color deadColor = boardState[any.getX()][any.getY()];
-
-            Color captor = (deadColor == Color.BLACK) ? Color.WHITE : Color.BLACK;
-
-            for (SingleMove p : group) {
-                boardState[p.getX()][p.getY()] = Color.NONE;
-                prisoners.put(captor, prisoners.get(captor) + 1);
-            }
-        }
-    }
-
-    public int getPrisoners(Color color) {
-        return prisoners.get(color);
-    }
-
+    /**
+     * Function makeMove that proceeds a single move from one player
+     * @param move
+     * @param side
+     * @return
+     */
     public boolean makeMove(SingleMove move, Color side) {
 
         int x = move.getX();
@@ -195,20 +225,42 @@ public class MoveHandler{
             board.returnCurrentState()[x][y] = Color.NONE;
             return false;
         }
-
-        if (koPoint != null &&
-            koPoint.getX() == x &&
-            koPoint.getY() == y) {
-            return false;
-        }
-
-        updateGroupStatus();
-        removeDeadGroups();
-
+        lastMoveWasPass=false;
         board.switchTurn();
         return true;
     }
 
+    /**
+     * Function that removes one stone from the board and adds a point to player that captured it 
+     * @param side
+     * @param x
+     * @param y
+     */
+    public void removeStone(Color side, int x, int y){
+        board.returnCurrentState()[x][y]=Color.NONE;
+        pointHandler.addPoints(1, side);
+    }
+
+    /**
+     * Function removeStones to remove stones after negotiations
+     * @param statusHolder holds grid of stone statuses
+     */
+    public void removeStones(StoneStatusHolder statusHolder){
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                if(statusHolder.returnStoneStatus()[i][j]==StoneStatus.DEAD){
+                    pointHandler.addPoints(1, board.returnCurrentState()[i][j]);
+                    board.returnCurrentState()[i][j]=Color.NONE;
+                }
+            }
+        }
+    }
+
+
+    /**
+     * function for passing (useful in tests)
+     * @param side
+     */
     public void pass(Color side) {
         if (side != board.getCurrentTurn()) return;
     
@@ -220,11 +272,38 @@ public class MoveHandler{
         board.switchTurn();
     }
 
+    /**
+     * Function for resuming the game
+     * @param requestingPlayer
+     */
     public void resumeGame(Color requestingPlayer) {
         gameStopped = false;
         lastMoveWasPass = false;
         board.setCurrentTurn(requestingPlayer);
     }
+
+    /**
+     * Funcition resolvePoints for calculating points
+     */
+    public void resolvePoints(){
+        pointHandler.calculateTerritoryPoints();
+    }
     
+    /**
+     * Function that returns points for given player
+     * @param side
+     * @return
+     */
+    public int returnPoints(Color side){
+        if(side==Color.WHITE){
+            return pointHandler.whitePoints();
+        }
+        else if(side==Color.BLACK){
+            return pointHandler.blackPoints();
+        }
+        else{
+            return -1;
+        }
+    }
     
 }

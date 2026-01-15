@@ -1,7 +1,10 @@
 package project.go.server.common.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+import project.go.applogic.StoneStatus;
 
 // JSON structure for game commands sent by clients
 // Usage:
@@ -28,9 +31,46 @@ public class GameCommand<T> {
         }
     }
 
+    static public class ChangeStoneStatus {
+        public static final String STATUS_ALIVE = "alive";
+        public static final String STATUS_DEAD = "dead";
+
+        private String position;
+        private String status;
+
+        public ChangeStoneStatus() {
+        }
+
+        public ChangeStoneStatus(String position, String status) {
+            this.position = position;
+            this.status = status;
+        }
+
+        public String getPosition() {
+            return position;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        @JsonIgnore
+        public StoneStatus toStoneStatus() {
+            if (STATUS_ALIVE.equals(this.status)) {
+                return StoneStatus.ALIVE;
+            } else if (STATUS_DEAD.equals(this.status)) {
+                return StoneStatus.DEAD;
+            } else {
+                return StoneStatus.UNKNOWN;
+            }
+        }
+    }
+
     public static final String COMMAND_MAKE_MOVE = "make-move";
     public static final String COMMAND_PASS = "pass";
     public static final String COMMAND_RESIGN = "resign";
+    public static final String COMMAND_CHANGE_STONE_STATUS = "change-stone-status";
+    public static final String COMMAND_RESUME = "resume";
 
 
     private String command;
@@ -44,8 +84,10 @@ public class GameCommand<T> {
     )
     @JsonSubTypes({
         @JsonSubTypes.Type(value = PayloadMakeMove.class, name = COMMAND_MAKE_MOVE),
+        @JsonSubTypes.Type(value = ChangeStoneStatus.class, name = COMMAND_CHANGE_STONE_STATUS),
         @JsonSubTypes.Type(value = Object.class, name = COMMAND_PASS), // no payload
-        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESIGN) // no payload
+        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESIGN), // no payload
+        @JsonSubTypes.Type(value = Object.class, name = COMMAND_RESUME)  // no payload
     })
     private T payload;
 

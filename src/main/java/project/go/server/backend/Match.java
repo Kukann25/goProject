@@ -7,6 +7,8 @@ import java.util.NoSuchElementException;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
 import project.go.applogic.Color;
+import project.go.applogic.MoveHandler;
+import project.go.applogic.PointHandler;
 
 // Represents a match between two players
 public class Match implements Runnable {
@@ -35,6 +37,7 @@ public class Match implements Runnable {
     private ClientData white;
     private final String matchId;
     private MatchState state;
+    private SharedMatchLogicState sharedState;
 
     public Match(ConnectedClient.Data cl1, ConnectedClient.Data cl2) {
         this.state = new MatchState();
@@ -54,16 +57,30 @@ public class Match implements Runnable {
 
         // Run the match until completion
         try {
-            SharedMatchLogicState sharedState = new SharedMatchLogicState(this.state);
+            sharedState = new SharedMatchLogicState(this.state);
 
             // Support async input reading to disallow blocking
             // (Always respond to both players even if it's not their turn)
             MatchLogic blackLogic = new MatchLogic(black, sharedState);
             MatchLogic whiteLogic = new MatchLogic(white, sharedState);
+            boolean notifiedPass = false;
 
             while (this.state.isOngoing()) {
                 blackLogic.handleInput();
                 whiteLogic.handleInput();
+
+                if (sharedState.checkBothPassed() && !notifiedPass) {
+                    notifiedPass = true;
+                    sharedState.initNegotiation();
+                    log("Both players passed. Starting match end negotiation.");
+                    // Notify both players about the pass situation
+                    beginNegotiationOnPass(black);
+                    beginNegotiationOnPass(white);
+                } else if (!sharedState.checkBothPassed() && notifiedPass) {
+                    // If negotiation was ongoing but now one player made a move, resume the game
+                    notifiedPass = false;
+                    log("Negotiation cancelled. Resuming game.");
+                }
             }
 
         } catch(NoSuchElementException e) {
@@ -97,6 +114,19 @@ public class Match implements Runnable {
         }
     }
 
+    private void beginNegotiationOnPass(ClientData client) throws Exception {
+        // Notify both players that both have passed
+        PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
+
+        out.println(JsonFmt.toJson(
+            new GameResponse<Object>(
+                GameResponse.STATUS_OK,
+                GameResponse.TYPE_PASS_MOVE,
+                "Both players have passed. Match end negotiation started.",
+                null)
+        ));
+    }
+
     /**
      * Closes a client connection with a final message (if not already closed).
      */
@@ -119,25 +149,44 @@ public class Match implements Runnable {
         Color winner = state.getWinner();
         String message;
         String reason;
-        
+
+        MoveHandler mh = sharedState.getMoveHandler();
+
+        if (sharedState.getWhiteProposal() != null) {
+            mh.removeStones(sharedState.getWhiteProposal()); // Both black and white agreed on these
+        }
+
+        mh.resolvePoints();
+        int scoreBlack = mh.returnPoints(Color.BLACK);
+        int scoreWhite = mh.returnPoints(Color.WHITE);
+
         if (state.isForfeited()) {
             reason = "forfeit";
         } else {
             reason = "normal";
+
+            // Determine winner by score if no forfeit
+            if (scoreBlack > scoreWhite) {
+                winner = Color.BLACK;
+            } else if (scoreWhite > scoreBlack) {
+                winner = Color.WHITE;
+            } else {
+                winner = null; // draw
+            }
         }
 
         if (winner == Color.BLACK) {
             message = "Black player wins!";
             matchEndResponse = new GameResponse.MatchEnd(
-                reason, GameResponse.MatchEnd.WINNER_BLACK);
+                reason, GameResponse.MatchEnd.WINNER_BLACK, scoreBlack, scoreWhite);
         } else if (winner == Color.WHITE) {
             message = "White player wins!";
             matchEndResponse = new GameResponse.MatchEnd(
-                reason, GameResponse.MatchEnd.WINNER_WHITE);
+                reason, GameResponse.MatchEnd.WINNER_WHITE, scoreBlack, scoreWhite);
         } else {
             message = "The game ended in a draw.";
             matchEndResponse = new GameResponse.MatchEnd(
-                reason, GameResponse.MatchEnd.WINNER_NONE);
+                reason, GameResponse.MatchEnd.WINNER_NONE, scoreBlack, scoreWhite);
         }
 
         close(black, new GameResponse<GameResponse.MatchEnd>(

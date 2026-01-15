@@ -76,11 +76,22 @@ public class PointHandler extends Handler{
     public void calculateTerritoryPoints() {
         int size = board.getSize();
         boolean[][] visited = new boolean[size][size];
-        
+        boolean allEmpty = true;
+
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 visited[i][j] = false;
+
+                if (board.returnCurrentState()[i][j] != Color.NONE) {
+                    allEmpty = false;
+                }
             }
+        }
+
+        if (allEmpty) {
+            whitePoints = 0;
+            blackPoints = 0;
+            return;
         }
         
         for (int x = 0; x < size; x++) {

@@ -249,7 +249,7 @@ public class MoveHandler extends Handler{
         for(int i=0;i<size;i++){
             for(int j=0;j<size;j++){
                 if(statusHolder.returnStoneStatus()[i][j]==StoneStatus.DEAD){
-                    pointHandler.addPoints(1, board.returnCurrentState()[i][j]);
+                    pointHandler.addPoints(1, board.returnCurrentState()[i][j].getOpposite());
                     board.returnCurrentState()[i][j]=Color.NONE;
                 }
             }

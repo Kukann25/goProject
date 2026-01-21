@@ -12,6 +12,15 @@ public class TreeStats {
     }
 
     /**
+     * Reset the tree statistics.
+     */
+    public synchronized void reset() {
+        this.maxDepth = 0;
+        this.sps = 0;
+        this.simulations = 0;
+    }
+
+    /**
      * Update the maximum depth reached in the tree.
      * @param depth The depth to compare with the current maximum depth.
      */

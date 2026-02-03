@@ -46,7 +46,6 @@ public class MatchLogic {
 
     /**
      * Handles input from a player client, it's non-blocking.
-     * @return GameResponse indicating the result of the command.
      * @throws Exception Internal error processing the command.
      * @throws NoSuchElementException If the input is closed.
      */
@@ -70,6 +69,18 @@ public class MatchLogic {
     }
 
     private void tryNotifyOpponent() throws JsonProcessingException {
+        // Check manual resume
+        project.go.applogic.Color resumedBy = sharedState.popResumed();
+        if (resumedBy != null) {
+            log("Notifying player " + client.data().getClientId() + " that game was resumed.");
+            out.println(JsonFmt.toJson(new GameResponse<>(
+                GameResponse.STATUS_OK,
+                GameResponse.TYPE_GAME_RESUMED,
+                GameResponse.MESSAGE_GAME_RESUMED,
+                new GameResponse.BoardUpdate("resume")
+            )));
+        }
+
         // Notify player of opponent's move if available
         String otherPlayerMove = sharedState.popEnemyMove(client.getSide());
         if (otherPlayerMove != null) {
@@ -80,6 +91,18 @@ public class MatchLogic {
                 "Opponent played a move",
                 new GameResponse.BoardUpdate(otherPlayerMove)
             )));
+        }
+
+        GameResponse.StoneStatusUpdate statusUpdate = sharedState.popEnemyStatusUpdate(client.getSide());
+        while (statusUpdate != null) {
+             log("Notifying player " + client.data().getClientId() + " of stone status update: " + statusUpdate.getPosition());
+             out.println(JsonFmt.toJson(new GameResponse<GameResponse.StoneStatusUpdate>(
+                 GameResponse.STATUS_OK,
+                 GameResponse.TYPE_STONE_STATUS_UPDATE,
+                 "Opponent updated stone status",
+                 statusUpdate
+             )));
+             statusUpdate = sharedState.popEnemyStatusUpdate(client.getSide());
         }
     }
 }

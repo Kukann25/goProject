@@ -24,6 +24,7 @@ import project.go.server.common.json.GameCommand;
 import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.GameResponse.BoardUpdate;
 import project.go.server.client.components.Status;
+import project.go.applogic.StoneStatus;
 
 public class Game extends GridPane {
     private Stage primaryStage;
@@ -32,6 +33,9 @@ public class Game extends GridPane {
     private Status statusComponent;
     private Button resignButton;
     private Button passButton;
+    private Button resumeButton;
+    private Button allAliveButton;
+    private project.go.applogic.Color myColor;
 
     public static class Props {
         private GameResponse.PlayerTurn playerTurn;
@@ -48,6 +52,7 @@ public class Game extends GridPane {
     public Game(Stage primaryStage, Props props) {
         this.primaryStage = primaryStage;
         this.statusComponent = new Status();
+        this.myColor = props.playerTurn.getColor();
         statusComponent.setStatusText("Joined match, your side: " + props.playerTurn.getSide(), Status.StatusType.OK);
 
         this.board = new BoardComponent(Client.getInstance().getClientState().getBoard());
@@ -63,6 +68,15 @@ public class Game extends GridPane {
 
         this.passButton = new Button("Pass");
         this.resignButton = new Button("Resign");
+        this.resumeButton = new Button("Resume Game");
+        this.allAliveButton = new Button("Suggest All Alive");
+        
+        // Hide negotiation buttons initially
+        this.resumeButton.setVisible(false);
+        this.resumeButton.setManaged(false);
+        this.allAliveButton.setVisible(false);
+        this.allAliveButton.setManaged(false);
+
         registerCallbacks();
         registerHandlers();
         
@@ -73,7 +87,7 @@ public class Game extends GridPane {
         // Add components to layout
         VBox rightPanel = new VBox(10, 
             new PlayerStats(props.getPlayerTurn().getColor()), 
-            passButton, resignButton);
+            passButton, resignButton, resumeButton, allAliveButton);
         rightPanel.setStyle("-fx-padding: 10;-fx-background-color: #e5c683ff;");
         
         this.add(rightPanel, 1, 0);
@@ -95,6 +109,36 @@ public class Game extends GridPane {
             }
         });
 
+
+        this.resumeButton.setOnAction(e -> {
+            try {
+                CommandMatcher.getServerCommand(
+                    GameCommand.COMMAND_RESUME, null).execute(
+                        Client.getInstance().getConnection());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        this.allAliveButton.setOnAction(e -> {
+            try {
+                CommandMatcher.getServerCommand(
+                    GameCommand.COMMAND_CHANGE_STONE_STATUS, 
+                    new String[]{"all", "alive"}
+                ).execute(Client.getInstance().getConnection());
+                
+                // Optimistic visual update not easy for "ALL" without board iteration here
+                // We rely on server response or local full redraw
+                // Actually we can iterate over board and update local status
+                // But server response is fast enough usually.
+                // However, let's do it for responsiveness
+                // But wait, BoardComponent logic for getting current board state to iterate is not exposed fully
+                // (except via draw, but we need loop).
+                // Let's just trust server.
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
         this.resignButton.setOnAction(e -> {
             try {
                 CommandMatcher.getServerCommand(
@@ -128,6 +172,14 @@ public class Game extends GridPane {
                 if (!resp.isError()) {
                     BoardUpdate data = (BoardUpdate) resp.getData();
                     MoveHandler handler = new MoveHandler(state.getBoard());
+
+                    if (data.getMove().equals("pass")) {
+                        handler.pass(state.getPlayerColor());
+                        statusComponent.setStatusText("Passed turn", Status.StatusType.INFO);
+                        SyncPrinter.info("Passed turn");
+                        return;
+                    }
+
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getPlayerColor());
                     board.update(state.getBoard());
                     statusComponent.setStatusText("Move accepted: " + data.getMove(), Status.StatusType.OK);
@@ -145,6 +197,14 @@ public class Game extends GridPane {
                 if (resp.getData() instanceof GameResponse.BoardUpdate) {
                     GameResponse.BoardUpdate data = (GameResponse.BoardUpdate) resp.getData();
                     MoveHandler handler = new MoveHandler(state.getBoard());
+
+                    if (data.getMove().equals("pass")) {
+                        handler.pass(state.getEnemyColor());
+                        statusComponent.setStatusText("Opponent passed their turn.", Status.StatusType.INFO);
+                        SyncPrinter.info("Opponent passed their turn.");
+                        return;
+                    }
+                    
                     // Make opponent move
                     handler.makeMove(MoveConverter.fromJSON(data.getMove()), state.getEnemyColor());
                     board.update(state.getBoard());
@@ -157,6 +217,103 @@ public class Game extends GridPane {
             });
         });
 
+        // Pass move negotation (opponent also passed the turn - start negotiation)
+        this.dispatcher.register(GameResponse.TYPE_PASS_MOVE, (resp, state) -> {
+            Platform.runLater(() -> {
+                statusComponent.setStatusText("Both players passed. Match end negotiation started. Click stones to mark dead/alive.", Status.StatusType.INFO);
+                SyncPrinter.info("Both players passed. Match end negotiation started.");
+                
+                // Toggle buttons
+                passButton.setVisible(false);
+                passButton.setManaged(false);
+                resumeButton.setVisible(true);
+                resumeButton.setManaged(true);
+                allAliveButton.setVisible(true);
+                allAliveButton.setManaged(true);
+
+                board.startNegotiation(state.getBoard());
+                board.setCallback((point) -> {
+                    StoneStatus current = board.getMyStatus(point.getX(), point.getY());
+                    if (current == StoneStatus.NONE) return;
+
+                    StoneStatus next;
+                    if (current != StoneStatus.DEAD) next = StoneStatus.DEAD;
+                    else next = StoneStatus.ALIVE;
+                    
+                    String statusStr = (next == StoneStatus.DEAD) ? "dead" : "alive";
+                    String posStr = point.getX() + "-" + point.getY();
+
+                    try {
+                        CommandMatcher.getServerCommand(
+                            GameCommand.COMMAND_CHANGE_STONE_STATUS, 
+                            new String[]{posStr, statusStr}
+                        ).execute(Client.getInstance().getConnection());
+                        
+                        // Optimistic update
+                        board.updateStatus(point.getX(), point.getY(), next, true);
+                        board.redraw();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+            });
+        });
+
+        this.dispatcher.register(GameResponse.TYPE_GAME_RESUMED, (resp, state) -> {
+            Platform.runLater(() -> {
+                statusComponent.setStatusText(resp.getMessage(), Status.StatusType.INFO);
+                SyncPrinter.info(resp.getMessage());
+
+                // Toggle buttons back
+                passButton.setVisible(true);
+                passButton.setManaged(true);
+                resumeButton.setVisible(false);
+                resumeButton.setManaged(false);
+                allAliveButton.setVisible(false);
+                allAliveButton.setManaged(false);
+
+                board.stopNegotiation();
+                // Restore move making behavior
+                board.setCallback((point) -> {
+                    try {
+                        CommandMatcher.getServerCommand(
+                        GameCommand.COMMAND_MAKE_MOVE, new String[]{MoveConverter.toJSON(point)})
+                        .execute(Client.getInstance().getConnection());
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+            });
+        });
+
+        this.dispatcher.register(GameResponse.TYPE_STONE_STATUS_UPDATE, (resp, state) -> {
+            Platform.runLater(() -> {
+                if (resp.getData() instanceof GameResponse.StoneStatusUpdate) {
+                    GameResponse.StoneStatusUpdate data = (GameResponse.StoneStatusUpdate) resp.getData();
+                    
+                    String[] parts = data.getPosition().split("-");
+                    int x = Integer.parseInt(parts[0]);
+                    int y = Integer.parseInt(parts[1]);
+                    
+                    StoneStatus status;
+                    if ("dead".equals(data.getStatus())) status = StoneStatus.DEAD;
+                    else if ("alive".equals(data.getStatus())) status = StoneStatus.ALIVE;
+                    else status = StoneStatus.UNKNOWN;
+                    
+                    boolean isMine = false;
+                    if (data.getSide().equals(this.myColor == project.go.applogic.Color.BLACK ? "black" : "white")) {
+                        isMine = true; // Should not happen if server only notifies opponent, but handling it is safe
+                    }
+                    
+                    board.updateStatus(x, y, status, isMine);
+                    board.redraw();
+                    
+                    statusComponent.setStatusText("Status updated: " + data.getPosition() + " to " + data.getStatus(), Status.StatusType.INFO);
+                }
+            });
+        });
+
+        // Match End Handler
         this.dispatcher.register(GameResponse.TYPE_MATCH_END, (resp, state) -> {
             Platform.runLater(() -> {
                 if (resp.getData() instanceof GameResponse.MatchEnd) {
@@ -171,6 +328,9 @@ public class Game extends GridPane {
 
                     project.go.applogic.Color myColor = state.getPlayerColor();
                     project.go.applogic.Color winnerColor = data.getWinnerColor();
+                    int scoreBlack = data.getScoreBlack();;
+                    int scoreWhite = data.getScoreWhite();
+
                     String resultTitle = "Match Ended";
                     String outcomeText;
                     if (winnerColor == null) {
@@ -187,7 +347,8 @@ public class Game extends GridPane {
                     Text header = new Text(outcomeText);
                     header.setStyle("-fx-font-size: 20pt; -fx-font-weight: bold;");
 
-                    Text info = new Text("Reason: " + data.getReason() + "\nWinner: " + data.getWinner());
+                    Text info = new Text("Reason: " + data.getReason() + "\nWinner: " + data.getWinner() +
+                        "\nFinal Score - Black: " + scoreBlack + " | White: " + scoreWhite);
                     info.setStyle("-fx-text-alignment: center;");
 
                     Button okButton = new Button("OK");

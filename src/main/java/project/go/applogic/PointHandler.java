@@ -76,11 +76,22 @@ public class PointHandler extends Handler{
     public void calculateTerritoryPoints() {
         int size = board.getSize();
         boolean[][] visited = new boolean[size][size];
-        
+        boolean allEmpty = true;
+
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 visited[i][j] = false;
+
+                if (board.returnCurrentState()[i][j] != Color.NONE) {
+                    allEmpty = false;
+                }
             }
+        }
+
+        if (allEmpty) {
+            whitePoints = 0;
+            blackPoints = 0;
+            return;
         }
         
         for (int x = 0; x < size; x++) {
@@ -90,13 +101,13 @@ public class PointHandler extends Handler{
                     
                     if (whiteTerritory > 0) {
                         whitePoints += whiteTerritory;
-                        markVisitedTerritory(x, y, visited, Color.WHITE);
+                        markVisitedTerritory(x, y, visited);
                     } else {
                         int blackTerritory = territoryFloodFill(x, y, Color.BLACK);
                         
                         if (blackTerritory > 0) {
                             blackPoints += blackTerritory;
-                            markVisitedTerritory(x, y, visited, Color.BLACK);
+                            markVisitedTerritory(x, y, visited);
                         }
                     }
                 }
@@ -111,7 +122,7 @@ public class PointHandler extends Handler{
      * @param visited visited array
      * @param side owner of the territory
      */
-    private void markVisitedTerritory(int startX, int startY, boolean[][] visited, Color side) {
+    private void markVisitedTerritory(int startX, int startY, boolean[][] visited) {
         Stack<SingleMove> stack = new Stack<>();
         
         stack.push(new SingleMove(startX, startY));

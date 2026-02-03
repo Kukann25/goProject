@@ -1,5 +1,10 @@
 package project.go.server.backend;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 import project.go.Config;
 import project.go.applogic.Board;
 import project.go.applogic.Color;
@@ -8,10 +13,9 @@ import project.go.applogic.MoveHandler;
 import project.go.applogic.SingleMove;
 import project.go.applogic.StoneStatus;
 import project.go.applogic.StoneStatusHolder;
+import project.go.dbinterface.DBMove;
+import project.go.dbinterface.MatchRepository;
 import project.go.server.common.json.GameResponse;
-import java.util.Queue;
-import java.util.LinkedList;
-
 /**
  * Shared state between match logic instances (for both players).
  */
@@ -24,6 +28,7 @@ public class SharedMatchLogicState {
     private boolean blackPassed = false;
     private boolean whitePassed = false;
     private Color resumedBy = null;
+    private List<DBMove> dbMoves = new ArrayList<>();
 
     private StoneStatusHolder blackProposal;
     private StoneStatusHolder whiteProposal;
@@ -49,6 +54,8 @@ public class SharedMatchLogicState {
         if (!moveHandler.makeMove(sm, color)) {
             throw new IllegalArgumentException("Invalid move: " + move);
         }
+
+        dbMoves.add(sm.convertToDBMove(color));
 
         // Reset pass flags on valid move
         this.blackPassed = this.whitePassed = false;
@@ -199,5 +206,9 @@ public class SharedMatchLogicState {
 
     public Board getBoard() {
         return board;
+    }
+
+    public List<DBMove> getDBMoves(){
+        return dbMoves;
     }
 }

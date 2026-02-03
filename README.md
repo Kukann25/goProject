@@ -15,3 +15,8 @@ Serwer
 ```bash
 mvn compile exec:java -Dexec.mainClass="project.go.App"
 ```
+
+Javadoc
+```bash
+mvn javadoc:javadoc
+```

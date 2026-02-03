@@ -453,14 +453,12 @@ public class MoveHandler extends Handler{
         for(int i=0;i<size;i++){
             for(int j=0;j<size;j++){
                 if(statusHolder.returnStoneStatus()[i][j]==StoneStatus.DEAD){
-                    pointHandler.addPoints(1, board.returnCurrentState()[i][j]);
+                    pointHandler.addPoints(1, board.returnCurrentState()[i][j].getOpposite());
                     board.returnCurrentState()[i][j]=Color.NONE;
                 }
             }
         }
     }
-
-
     /**
      * function for passing (useful in tests)
      * @param side
@@ -508,6 +506,10 @@ public class MoveHandler extends Handler{
         else{
             return -1;
         }
+    }
+
+    public PointHandler getPointHandler(){
+        return pointHandler;
     }
     
 }

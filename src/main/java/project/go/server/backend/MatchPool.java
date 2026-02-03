@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import project.go.server.common.json.GameModeRequest;
 import project.go.Config;
+import project.go.dbinterface.MatchRepository;
 
 public class MatchPool {
 
@@ -38,11 +39,13 @@ public class MatchPool {
     private final ClientPool clientPool;
     private volatile boolean isRunning = true;
     private Thread matchMakerThread;
+    private MatchRepository matchDBRepository;
     
-    public MatchPool(ClientPool clientPool) {
+    public MatchPool(ClientPool clientPool, MatchRepository matchDBRepository) {
         this.clientPool = clientPool;
         this.matches = new HashMap<>();
         this.matchPool = Executors.newFixedThreadPool((Config.MAX_CLIENTS / 2) + 1);
+        this.matchDBRepository=matchDBRepository;
     }
 
     /**
@@ -87,7 +90,7 @@ public class MatchPool {
                 ConnectedClient cl2 = pvpClients.remove(0);
                 cl1.join();
                 cl2.join();
-                Match match = new Match(cl1.getClientData(), cl2.getClientData());
+                Match match = new Match(cl1.getClientData(), cl2.getClientData(), matchDBRepository);
                 matches.put(match.getMatchId(), match);
                 matchPool.execute(new MatchRunWrapper(match, matches));
             }

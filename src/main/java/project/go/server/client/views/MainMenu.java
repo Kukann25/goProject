@@ -47,6 +47,12 @@ public class MainMenu extends GridPane {
             connectAndSend(GameModeRequest.MODE_PVP);
         });
         btnContainer.getChildren().add(connectButton);
+
+        Button gamesHistoryButton = new Button("Games History");
+        gamesHistoryButton.setOnAction(e -> {
+            System.out.println("Nie lubię państwa Izrael");
+        });
+        btnContainer.getChildren().add(gamesHistoryButton);
         
         Button exitButton = new Button("Exit");
         exitButton.setOnAction(e -> {
@@ -57,6 +63,8 @@ public class MainMenu extends GridPane {
 
         statusComponent = new Status();
         this.add(statusComponent, 0, 1);
+
+        btnContainer.getChildren().add(connectButton);
     }
     
     private void connectAndSend(String mode) {

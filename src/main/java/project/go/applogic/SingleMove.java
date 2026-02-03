@@ -1,5 +1,6 @@
 package project.go.applogic;
 
+import project.go.dbinterface.DBMove;
 /**
  * Class singleMove contains a tuplet of coordinates
  */
@@ -26,6 +27,20 @@ public class SingleMove {
 
     public void setY(int y){
         this.y=y;
+    }
+
+    public DBMove convertToDBMove(Color color){
+        String colorString;
+        if(color==Color.BLACK){
+            colorString="black";
+        }
+        else if(color==Color.WHITE){
+            colorString="white";
+        }
+        else{
+            colorString="none";
+        }
+        return new DBMove(colorString, x, y);
     }
 
     @Override

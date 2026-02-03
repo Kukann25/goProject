@@ -68,7 +68,7 @@ public class ClientPool {
     synchronized public Vector<ConnectedClient> getAwaitingClients() {
         Vector<ConnectedClient> awaitingClients = new Vector<>();
         for (ConnectedClient client : clients.values()) {
-            if (client.isWaitingForMatch()) {
+            if (client.isWaiting()) {
                 awaitingClients.add(client);
             }
         }

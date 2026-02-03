@@ -11,6 +11,7 @@ public class ClientState {
     private volatile boolean isRunning;
     private Board board;
     private Color playerColor;
+    private String selectedMatchId;
 
     public ClientState() {
         reset();
@@ -18,6 +19,14 @@ public class ClientState {
 
     public boolean isRunning() {
         return isRunning;
+    }
+
+    public void setSelectedMatchId(String id) {
+        this.selectedMatchId = id;
+    }
+
+    public String getSelectedMatchId() {
+        return selectedMatchId;
     }
 
     public Board getBoard() {

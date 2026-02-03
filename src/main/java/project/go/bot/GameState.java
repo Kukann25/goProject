@@ -1,5 +1,6 @@
 package project.go.bot;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import project.go.applogic.Board;
@@ -47,7 +48,7 @@ public class GameState extends Board {
             }
         }
         // Clone move history
-        clonedState.moveHistory = List.copyOf(this.moveHistory);
+        clonedState.moveHistory = new ArrayList<>(this.moveHistory);
         return clonedState;
     }
 }

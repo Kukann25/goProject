@@ -30,6 +30,10 @@ public class Limiter {
         this.allowExpansion = allowExpansion;
     }
 
+    public long getElapsedTimeMillis() {
+        return System.currentTimeMillis() - startTimeMillis;
+    }
+
     public void start() {
         this.startTimeMillis = System.currentTimeMillis();
         this.stopped = false;

@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MatchRepository extends MongoRepository<DBMatch, String>{
+    java.util.List<DBMatch> findByPlayerBlackOrPlayerWhite(String playerBlack, String playerWhite);
 }

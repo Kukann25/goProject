@@ -8,7 +8,6 @@ import project.go.server.common.json.GameResponse;
 import project.go.server.common.json.JsonFmt;
 import project.go.applogic.Color;
 import project.go.applogic.MoveHandler;
-import project.go.applogic.PointHandler;
 import project.go.dbinterface.DBMatch;
 import project.go.dbinterface.MatchRepository;
 
@@ -24,7 +23,7 @@ public class Match implements Runnable {
         }
 
         public ClientData(final ConnectedClient.Data base, Color side, final String matchId) {
-            super(base.getSocket());
+            super(base.getSocket(), base.getClientId());
             this.side = side;
             this.matchId = matchId;
         }

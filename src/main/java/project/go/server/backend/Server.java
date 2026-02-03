@@ -27,6 +27,7 @@ public class Server {
     private Thread serverThread;
 
     private MatchRepository matchDBRepository;
+    private com.sun.net.httpserver.HttpServer httpServer;
 
     /**
      * Initializes the server on the specified port.
@@ -60,6 +61,66 @@ public class Server {
     public void start() throws Exception {
         log("Server started on port " + serverSocket.getLocalPort());
         
+        try {
+             httpServer = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress(8080), 0);
+             httpServer.createContext("/history", exchange -> {
+                 if ("GET".equals(exchange.getRequestMethod())) {
+                     String query = exchange.getRequestURI().getQuery();
+                     String clientId = null;
+                     if (query != null) {
+                         for (String param : query.split("&")) {
+                             String[] pair = param.split("=");
+                             if (pair.length > 1 && "clientId".equals(pair[0])) {
+                                 clientId = pair[1];
+                                 break;
+                             }
+                         }
+                     }
+
+                     if (clientId != null && matchDBRepository != null) {
+                         try {
+                             java.util.List<project.go.dbinterface.DBMatch> matches = matchDBRepository.findByPlayerBlackOrPlayerWhite(clientId, clientId);
+                             project.go.server.common.json.MatchHistoryResponse resp = new project.go.server.common.json.MatchHistoryResponse();
+                             if (matches != null) {
+                                 for(project.go.dbinterface.DBMatch m : matches) {
+                                     java.util.List<project.go.server.common.json.MatchHistoryResponse.Move> moves = new java.util.ArrayList<>();
+                                     if(m.getMoves() != null) {
+                                         for(project.go.dbinterface.DBMove mv : m.getMoves()) {
+                                             moves.add(new project.go.server.common.json.MatchHistoryResponse.Move(mv.getColor(), mv.getX(), mv.getY()));
+                                         }
+                                     }
+                                     resp.addMatch(new project.go.server.common.json.MatchHistoryResponse.Match(m.getId(), m.getPlayerBlack(), m.getPlayerWhite(), moves));
+                                 }
+                             }
+                             
+                             String json = project.go.server.common.json.JsonFmt.toJson(resp);
+                             exchange.getResponseHeaders().set("Content-Type", "application/json");
+                             exchange.sendResponseHeaders(200, json.length());
+                             try (java.io.OutputStream os = exchange.getResponseBody()) {
+                                 os.write(json.getBytes());
+                             }
+                         } catch (Exception e) {
+                             String msg = "Internal error: " + e.getMessage();
+                             exchange.sendResponseHeaders(500, msg.length());
+                             try (java.io.OutputStream os = exchange.getResponseBody()) { os.write(msg.getBytes()); }
+                         }
+                     } else {
+                         String msg = clientId == null ? "Missing clientId parameter" : "Match repository not available";
+                         exchange.sendResponseHeaders(400, msg.length());
+                         try (java.io.OutputStream os = exchange.getResponseBody()) {
+                             os.write(msg.getBytes());
+                         }
+                     }
+                 } else {
+                     exchange.sendResponseHeaders(405, -1);
+                 }
+             });
+             httpServer.start();
+             log("HTTP Server started on port 8080");
+        } catch (Exception e) {
+            log("Failed to start HTTP server: " + e.getMessage());
+        }
+
         this.clientPool = new ClientPool();
         this.matchPool = new MatchPool(clientPool, matchDBRepository);
         this.matchPool.start();
@@ -115,6 +176,9 @@ public class Server {
             }
             if (matchPool != null) {
                 matchPool.shutdown();
+            }
+            if (httpServer != null) {
+                httpServer.stop(0);
             }
             log("Server stopped.");
         }

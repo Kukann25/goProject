@@ -93,21 +93,6 @@ public class MatchPool {
                 matchPool.execute(new MatchRunWrapper(match, matches));
             }
             
-            // PvP fallback to bot (if wait > 10s)
-            // if (!pvpClients.isEmpty()) {
-            //     ConnectedClient client = pvpClients.get(0);
-            //     if (currentTime - client.getJoinTime() > 10000) { // 10 seconds
-            //         // pvpClients.remove(0); // Not needed as we reconstruct list next time
-            //         client.join();
-                    
-            //         boolean isBlack = Math.random() < 0.5;
-            //         Match match = new Match(client.getClientData(), isBlack);
-            //         matches.put(match.getMatchId(), match);
-            //         matchPool.execute(new MatchRunWrapper(match, matches));
-            //         Logger.getInstance().log("MatchPool", "Paired PvP client with Bot after timeout.");
-            //     }
-            // }
-            
             Thread.sleep(100); // Avoid busy waiting
             Thread.yield(); // Allow other threads to run
         } catch (InterruptedException e) {

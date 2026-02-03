@@ -22,6 +22,11 @@ public class ConnectedClient implements Runnable {
             this.clientId = java.util.UUID.randomUUID().toString();
         }
 
+        public Data(final Socket socket, final String clientId) {
+            this.socket = socket;
+            this.clientId = clientId;
+        }
+
         /**
          * Gets the socket socket.
          * @return The socket connected to the client.

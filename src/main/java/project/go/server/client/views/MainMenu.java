@@ -93,6 +93,12 @@ public class MainMenu extends GridPane {
             }
         });
         btnContainer.getChildren().add(connectButton);
+
+        Button gamesHistoryButton = new Button("Games History");
+        gamesHistoryButton.setOnAction(e -> {
+            System.out.println("Nie lubię państwa Izrael");
+        });
+        btnContainer.getChildren().add(gamesHistoryButton);
         
         Button exitButton = new Button("Exit");
         exitButton.setOnAction(e -> {

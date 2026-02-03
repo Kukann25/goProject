@@ -255,8 +255,6 @@ public class MoveHandler extends Handler{
             }
         }
     }
-
-
     /**
      * function for passing (useful in tests)
      * @param side
@@ -304,6 +302,10 @@ public class MoveHandler extends Handler{
         else{
             return -1;
         }
+    }
+
+    public PointHandler getPointHandler(){
+        return pointHandler;
     }
     
 }

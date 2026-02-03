@@ -9,6 +9,8 @@ import project.go.server.common.json.JsonFmt;
 import project.go.applogic.Color;
 import project.go.applogic.MoveHandler;
 import project.go.applogic.PointHandler;
+import project.go.dbinterface.DBMatch;
+import project.go.dbinterface.MatchRepository;
 
 // Represents a match between two players
 public class Match implements Runnable {
@@ -38,14 +40,17 @@ public class Match implements Runnable {
     private final String matchId;
     private MatchState state;
     private SharedMatchLogicState sharedState;
+    private MatchRepository matchDBRepository;
 
-    public Match(ConnectedClient.Data cl1, ConnectedClient.Data cl2) {
+    public Match(ConnectedClient.Data cl1, ConnectedClient.Data cl2, MatchRepository matchDBRepository) {
         this.state = new MatchState();
         this.matchId = java.util.UUID.randomUUID().toString();
         // this.board = new ExtBoard(Config.DEFAULT_BOARD_SIZE); // Standard 19x19 board
 
         this.black = new ClientData(cl1, Color.BLACK, matchId);
         this.white = new ClientData(cl2, Color.WHITE, matchId);
+
+        this.matchDBRepository = matchDBRepository;
     }
 
     private static void log(String msg) {
@@ -109,6 +114,11 @@ public class Match implements Runnable {
                         GameResponse.MatchEnd.REASON_ERROR,
                         GameResponse.MatchEnd.WINNER_NONE)));
             } else {
+                DBMatch dbMatch = new DBMatch();
+                dbMatch.setPlayerBlack(black.getClientId());
+                dbMatch.setPlayerWhite(white.getClientId());
+                dbMatch.setMoves(sharedState.getDBMoves());
+                matchDBRepository.save(dbMatch);
                 notifyOnGameEnd();
             }
         }

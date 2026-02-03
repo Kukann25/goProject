@@ -20,7 +20,7 @@ public class App
         try {
             ConfigurableApplicationContext context = SpringApplication.run(App.class, args);
             MatchRepository matchRepository = context.getBean(MatchRepository.class);
-            Server server = new Server();
+            Server server = new Server(matchRepository);
             server.start();
         } catch (Exception e) {
             e.printStackTrace();

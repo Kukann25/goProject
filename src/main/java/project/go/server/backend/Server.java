@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import project.go.Config;
+import project.go.dbinterface.MatchRepository;
 
 
 public class Server {
@@ -25,13 +26,16 @@ public class Server {
     // Thread for asynchronous server running
     private Thread serverThread;
 
+    private MatchRepository matchDBRepository;
+
     /**
      * Initializes the server on the specified port.
      * @throws Exception If the server socket cannot be created (e.g., port is in use).
      */
-    public Server() throws Exception {
+    public Server(MatchRepository matchDBRepository) throws Exception {
         serverSocket = new ServerSocket(Config.PORT);
         Logger.getInstance().setLogLevel(Logger.LEVEL_ALL);
+        this.matchDBRepository=matchDBRepository;
     }
 
     /**
@@ -57,7 +61,7 @@ public class Server {
         log("Server started on port " + serverSocket.getLocalPort());
         
         this.clientPool = new ClientPool();
-        this.matchPool = new MatchPool(clientPool);
+        this.matchPool = new MatchPool(clientPool, matchDBRepository);
         this.matchPool.start();
 
         try {

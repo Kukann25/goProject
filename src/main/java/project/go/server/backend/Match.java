@@ -35,17 +35,48 @@ public class Match implements Runnable {
 
     private ClientData black;
     private ClientData white;
+    private MatchParticipantStrategy blackStrategy;
+    private MatchParticipantStrategy whiteStrategy;
+
     private final String matchId;
     private MatchState state;
     private SharedMatchLogicState sharedState;
 
+    // PvP Match Constructor
     public Match(ConnectedClient.Data cl1, ConnectedClient.Data cl2) {
         this.state = new MatchState();
         this.matchId = java.util.UUID.randomUUID().toString();
-        // this.board = new ExtBoard(Config.DEFAULT_BOARD_SIZE); // Standard 19x19 board
-
         this.black = new ClientData(cl1, Color.BLACK, matchId);
         this.white = new ClientData(cl2, Color.WHITE, matchId);
+    }
+    
+    // PvBot Match Constructor
+    public Match(ConnectedClient.Data player, boolean playerIsBlack) {
+        this.state = new MatchState();
+        this.matchId = java.util.UUID.randomUUID().toString();
+        
+        if (playerIsBlack) {
+            this.black = new ClientData(player, Color.BLACK, matchId);
+            this.white = createBotData(Color.WHITE, matchId);
+        } else {
+            this.black = createBotData(Color.BLACK, matchId);
+            this.white = new ClientData(player, Color.WHITE, matchId);
+        }
+    }
+    
+    private ClientData createBotData(Color color, String matchId) {
+         // Create dummy socket/data for bot, or handle differently.
+         // Since BotStrategy doesn't use the socket, we can pass null or a dummy.
+         // For safety with existing code that might check getSocket(), we might need a mock.
+         // However, Strategy pattern avoids this issue if implemented correctly.
+         return new ClientData((Socket)null) {
+             @Override
+             public Color getSide() { return color; }
+             @Override
+             public String getMatchId() { return matchId; }
+             @Override
+             public String getClientId() { return "Bot"; }
+         };
     }
 
     private static void log(String msg) {
@@ -58,24 +89,48 @@ public class Match implements Runnable {
         // Run the match until completion
         try {
             sharedState = new SharedMatchLogicState(this.state);
+            
+            // Initialize Strategies
+            if (black.getClientId().equals("Bot")) {
+                blackStrategy = new BotParticipantStrategy(Color.BLACK, sharedState);
+            } else {
+                blackStrategy = new HumanParticipantStrategy(black, sharedState);
+            }
 
-            // Support async input reading to disallow blocking
-            // (Always respond to both players even if it's not their turn)
-            MatchLogic blackLogic = new MatchLogic(black, sharedState);
-            MatchLogic whiteLogic = new MatchLogic(white, sharedState);
+            if (white.getClientId().equals("Bot")) {
+                whiteStrategy = new BotParticipantStrategy(Color.WHITE, sharedState);
+            } else {
+                whiteStrategy = new HumanParticipantStrategy(white, sharedState);
+            }
+            
+            // Send Game Start info to humans
+            notifyGameStart(black, white.getClientId().equals("Bot"));
+            notifyGameStart(white, black.getClientId().equals("Bot"));
+
             boolean notifiedPass = false;
 
             while (this.state.isOngoing()) {
-                blackLogic.handleInput();
-                whiteLogic.handleInput();
+                blackStrategy.handleTurn(this);
+                whiteStrategy.handleTurn(this);
 
                 if (sharedState.checkBothPassed() && !notifiedPass) {
                     notifiedPass = true;
-                    sharedState.initNegotiation();
-                    log("Both players passed. Starting match end negotiation.");
-                    // Notify both players about the pass situation
-                    beginNegotiationOnPass(black);
-                    beginNegotiationOnPass(white);
+                    // Only start negotiation if NO bots are involved, or handle specially
+                    boolean blackCanNegotiate = blackStrategy.supportsNegotiation();
+                    boolean whiteCanNegotiate = whiteStrategy.supportsNegotiation();
+                    
+                    if (blackCanNegotiate && whiteCanNegotiate) {
+                         sharedState.initNegotiation();
+                         log("Both players passed. Starting match end negotiation.");
+                         beginNegotiationOnPass(black);
+                         beginNegotiationOnPass(white);
+                    } else {
+                        // PvP Bot or Bot vs Bot (unlikely) -> End game directly using server scoring
+                        log("Both passed. Bot involved, skipping negotiation and ending game.");
+                        state.setWinner(null); // End cleanly
+                        notifyOnGameEnd(); 
+                        return; // Exit loop
+                    }
                 } else if (!sharedState.checkBothPassed() && notifiedPass) {
                     // If negotiation was ongoing but now one player made a move, resume the game
                     notifiedPass = false;
@@ -114,6 +169,26 @@ public class Match implements Runnable {
         }
     }
 
+    private void notifyGameStart(ClientData client, boolean opponentIsBot) {
+        if (client.getSocket() == null) return; // Is a bot or disconnected
+        try {
+            PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
+            String matchType = opponentIsBot ? GameResponse.MATCH_TYPE_PVBOT : GameResponse.MATCH_TYPE_PVP;
+            String opponentName = opponentIsBot ? "Bot" : "Player";
+            
+            out.println(JsonFmt.toJson(
+                new GameResponse<GameResponse.GameStart>(
+                    GameResponse.STATUS_OK,
+                    GameResponse.TYPE_GAME_START,
+                    "Match Started",
+                    new GameResponse.GameStart(matchType, opponentName)
+                )
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void beginNegotiationOnPass(ClientData client) throws Exception {
         // Notify both players that both have passed
         PrintWriter out = new PrintWriter(client.getSocket().getOutputStream(), true);
@@ -131,6 +206,8 @@ public class Match implements Runnable {
      * Closes a client connection with a final message (if not already closed).
      */
     private void close(ClientData client, Object response) {
+        if (client.getSocket() == null) return; // Bot has no socket
+
         try {
             if (client.getSocket().isClosed()) return;
 
@@ -138,7 +215,8 @@ public class Match implements Runnable {
             log("Closing connection to player " + client.data().getClientId());
             out.println(JsonFmt.toJson(response));
             client.getSocket().close();
-            state.addState(MatchState.CLOSED_CONNECTION);
+            state.addState(MatchState.CLOSED_CONNECTION); // Only set this if a real player leaves? 
+            // Actually closed connection state usually means game over anyway.
         } catch (Exception e) {
             e.printStackTrace();
         }

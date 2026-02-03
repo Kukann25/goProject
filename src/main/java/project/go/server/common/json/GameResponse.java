@@ -155,6 +155,23 @@ public class GameResponse<T> {
         public void setSide(String side) { this.side = side; }
     }
 
+    public static class GameStart {
+        private String matchType; // "pvp" or "pvbot"
+        private String opponentName;
+
+        public GameStart() {}
+        
+        public GameStart(String matchType, String opponentName) {
+            this.matchType = matchType;
+            this.opponentName = opponentName;
+        }
+        
+        public void setMatchType(String matchType) { this.matchType = matchType; }
+        public void setOpponentName(String opponentName) { this.opponentName = opponentName; }
+        public String getMatchType() { return matchType; }
+        public String getOpponentName() { return opponentName; }
+    }
+
     private int status; // First bit OK/Error, other bits verbose flags
     private String type;
     private String message;
@@ -174,24 +191,20 @@ public class GameResponse<T> {
         @JsonSubTypes.Type(value = PlayerTurn.class, name = TYPE_PLAYER_TURN),
         @JsonSubTypes.Type(value = MatchEnd.class, name = TYPE_MATCH_END),
         @JsonSubTypes.Type(value = StoneStatusUpdate.class, name = TYPE_STONE_STATUS_UPDATE),
-        @JsonSubTypes.Type(value = Object.class, name = TYPE_GAME_RESUMED)
+        @JsonSubTypes.Type(value = Object.class, name = TYPE_GAME_RESUMED),
+        @JsonSubTypes.Type(value = GameStart.class, name = TYPE_GAME_START)
     })
     private T data;
 
     public final static int STATUS_OK = 0;
     public final static int STATUS_ERROR = 1;
-    public final static int STATUS_FATAL = 2; // unrecoverable error
+    public final static int STATUS_FATAL = 2;
 
-    public final static int VERBOSE_VALID_MOVE = 1;
-    public final static int VERBOSE_INVALID_MOVE = 2;
-    public final static int VERBOSE_NOT_YOUR_TURN = 4;
-    public final static int VERBOSE_INTERNAL_ERROR = 8;
-    public final static int VERBOSE_MATCH_ENDED = 16;
-    public final static int VERBOSE_UNKNOWN_COMMAND = 32;
+    // ... verbose flags ...
 
-
-    public final static String TYPE_STATUS = "status"; // no data, simply a status message
-    public final static String TYPE_PLAYER_TURN = "player_turn"; // data contains PlayerTurn
+    public final static String TYPE_STATUS = "status";
+    public final static String TYPE_GAME_START = "game_start"; // New type
+    public final static String TYPE_PLAYER_TURN = "player_turn";
     public final static String TYPE_BOARD_UPDATE = "board_update"; // data contains board state
     public final static String TYPE_VALID_MOVE = "valid_move"; // data contains move info
     public final static String TYPE_MATCH_END = "match_end"; // data contains match end info
@@ -199,6 +212,10 @@ public class GameResponse<T> {
     public final static String TYPE_PASS_DECLIEND = "pass_move_declined"; // pass move was declined (game should resume)
     public final static String TYPE_STONE_STATUS_UPDATE = "stone_status_update";
     public final static String TYPE_GAME_RESUMED = "game_resumed";
+    
+    // Type of match
+    public final static String MATCH_TYPE_PVP = "pvp";
+    public final static String MATCH_TYPE_PVBOT = "pvbot";
 
     public final static String MESSAGE_MOVE_OK = "Move accepted";
     public final static String MESSAGE_GAME_RESUMED = "Game resumed";

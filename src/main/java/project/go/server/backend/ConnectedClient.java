@@ -3,7 +3,9 @@ package project.go.server.backend;
 import java.net.Socket;
 import java.io.PrintWriter;
 
-import project.go.server.common.json.*;
+import project.go.server.common.json.Connection;
+import project.go.server.common.json.GameModeRequest;
+import project.go.server.common.json.JsonFmt;
 
 public class ConnectedClient implements Runnable {
 
@@ -55,7 +57,18 @@ public class ConnectedClient implements Runnable {
     private Data clientData;
     private PrintWriter out;
     private State state;
+    private String gameMode; 
+    private long joinTime = System.currentTimeMillis();
     
+    public long getJoinTime() {
+        return joinTime;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+    
+
     /**
      * Initializes a Client for the given socket connection.
      * @param socket The socket connected to the client.
@@ -74,10 +87,28 @@ public class ConnectedClient implements Runnable {
             // Send the player id
             String json = JsonFmt.toJson(clientData.data());
             out.println(json);
+            
+            // Wait for request
+            java.util.Scanner in = new java.util.Scanner(clientData.getSocket().getInputStream());
+            if (in.hasNextLine()) {
+                String line = in.nextLine();
+                try {
+                    GameModeRequest req = JsonFmt.fromJson(line, GameModeRequest.class);
+                    this.gameMode = req.getMode();
+                } catch (Exception e) {
+                    Logger.getInstance().error("ConnectedClient-" + clientData.getClientId(), "Failed to parse mode: " + e.getMessage());
+                    this.gameMode = GameModeRequest.MODE_PVP; // Fallback
+                }
+            } else {
+                in.close();
+                return;
+            }
+
+            // in.close();
             setState(State.WAITING);
 
             // wait for a match to be assigned
-            while(isWaitingForMatch() && (clientData.getSocket().isConnected())) {
+            while(isWaiting() && (clientData.getSocket().isConnected())) {
                 Thread.yield();
             }
 
@@ -133,7 +164,7 @@ public class ConnectedClient implements Runnable {
      * Checks if the client is waiting for a match (thread-safe).
      * @return true if the client is in WAITING state, false otherwise.
      */
-    final public boolean isWaitingForMatch() {
+    final public boolean isWaiting() {
         synchronized(this) {
             return this.state == State.WAITING;
         }

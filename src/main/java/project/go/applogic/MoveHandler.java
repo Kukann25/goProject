@@ -1,6 +1,8 @@
 package project.go.applogic;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
@@ -21,6 +23,10 @@ public class MoveHandler extends Handler{
     private int size=Config.DEFAULT_BOARD_SIZE;
 
     private PointHandler pointHandler;
+
+    public Board getBoard() {
+        return board;
+    }
 
     /**
      * 
@@ -96,10 +102,11 @@ public class MoveHandler extends Handler{
      * FloodFill algorithm for checking chains od stones
      * @param startX
      * @param startY
+     * @param grid the board grid to check on
      * @return ChainResult class that contains set of all chains and set of all liberties
      */
-    private ChainResult floodFill(int startX, int startY){
-        Color color = board.returnCurrentState()[startX][startY];
+    private ChainResult floodFill(int startX, int startY, Color[][] grid){
+        Color color = grid[startX][startY];
 
         ChainResult result = new ChainResult();
         Set<SingleMove> visited = new HashSet<>();
@@ -121,9 +128,9 @@ public class MoveHandler extends Handler{
                 if (!isValid(nx, ny))
                     continue;
 
-                if (board.returnCurrentState()[nx][ny] == Color.NONE) {
+                if (grid[nx][ny] == Color.NONE) {
                     result.liberties.add(new SingleMove(nx, ny));
-                } else if (board.returnCurrentState()[nx][ny] == color) {
+                } else if (grid[nx][ny] == color) {
                     stack.push(new SingleMove(nx, ny));
                 }
             }
@@ -144,6 +151,7 @@ public class MoveHandler extends Handler{
         Color[][] boardState;
 
         int capturedStones = 0;
+        SingleMove koCandidate = null;
 
         Set<SingleMove> checked = new HashSet<>();
 
@@ -164,18 +172,19 @@ public class MoveHandler extends Handler{
             SingleMove start = new SingleMove(nx, ny);
             if (checked.contains(start)) continue;
     
-            ChainResult enemyChain = floodFill(nx, ny);
+            ChainResult enemyChain = floodFill(nx, ny, boardState);
             checked.addAll(enemyChain.chain);
     
             if (enemyChain.liberties.isEmpty()) {
                 for (SingleMove p : enemyChain.chain) {
                     boardState[p.getX()][p.getY()] = Color.NONE;
                     capturedStones++;
+                    koCandidate = p;
                 }
             }
         }
     
-        ChainResult myChain = floodFill(x, y);
+        ChainResult myChain = floodFill(x, y, boardState);
         if (myChain.liberties.isEmpty()) {
             for (SingleMove p : myChain.chain) {
                 boardState[p.getX()][p.getY()] = Color.NONE;
@@ -190,6 +199,10 @@ public class MoveHandler extends Handler{
         if (capturedStones == 1) {
             lastMoveWasKoBeat=true;
             copy_grid(koGrid);
+            if(koCandidate != null) {
+                 koGrid[x][y] = Color.NONE;
+                 koGrid[koCandidate.getX()][koCandidate.getY()] = opponent;
+            }
         }
         else{
             lastMoveWasKoBeat=false;
@@ -198,11 +211,202 @@ public class MoveHandler extends Handler{
 
         insert_grid(boardState);
         pointHandler.addPoints(capturedStones, side);
-        //System.out.println(pointHandler.whitePoints());
-        //System.out.println(pointHandler.blackPoints());
         return true;
     }
     
+
+
+    /**
+     * Checks if move is legal
+     * @param x coordinate
+     * @param y coordinate
+     * @param side player color
+     * @return true if move is legal
+     */
+    public boolean isLegal(int x, int y, Color side) {
+        if (!isValid(x, y)) return false;
+        if (board.returnCurrentState()[x][y] != Color.NONE) return false;
+        if (side != board.getCurrentTurn()) return false;
+
+        Color[][] testBoard = new Color[size][size];
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                testBoard[i][j]=this.board.returnCurrentState()[i][j];
+            }
+        }
+        testBoard[x][y] = side;
+
+        Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
+        Set<SingleMove> checked = new HashSet<>();
+
+        for (int i = 0; i < 4; i++) {
+            int nx = x + DX[i];
+            int ny = y + DY[i];
+    
+            if (!isValid(nx, ny)) continue;
+            if (testBoard[nx][ny] != opponent) continue;
+
+            SingleMove start = new SingleMove(nx, ny);
+            if (checked.contains(start)) continue;
+    
+            ChainResult enemyChain = floodFill(nx, ny, testBoard);
+            checked.addAll(enemyChain.chain);
+    
+            if (enemyChain.liberties.isEmpty()) {
+                for (SingleMove p : enemyChain.chain) {
+                    testBoard[p.getX()][p.getY()] = Color.NONE;
+                }
+            }
+        }
+    
+        ChainResult myChain = floodFill(x, y, testBoard);
+        if (myChain.liberties.isEmpty()) {
+            return false;
+        }
+
+        if(lastMoveWasKoBeat && compare_grids(testBoard, koGrid)){
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * Generates all legal moves for a given side
+     * @param side
+     * @return List of SingleMove
+     */
+    public List<SingleMove> generateLegalMoves(Color side) {
+        List<SingleMove> legalMoves = new ArrayList<>();
+        for(int i=0; i<size; i++) {
+            for(int j=0; j<size; j++) {
+                if(isLegal(i, j, side)) {
+                    legalMoves.add(new SingleMove(i, j));
+                }
+            }
+        }
+        return legalMoves;
+    }
+
+    /**
+     * Evaluates a move and returns metrics
+     * @param x
+     * @param y
+     * @param side
+     * @return MoveMetrics object
+     */
+    public MoveMetrics evaluateMove(int x, int y, Color side) {
+        MoveMetrics metrics = new MoveMetrics();
+
+        if (!isValid(x, y)) return metrics;
+        if (board.returnCurrentState()[x][y] != Color.NONE) return metrics;
+
+        Color[][] testBoard = new Color[size][size];
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                testBoard[i][j]=this.board.returnCurrentState()[i][j];
+            }
+        }
+        testBoard[x][y] = side;
+
+        Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
+        Set<SingleMove> checked = new HashSet<>();
+        
+        for (int i = 0; i < 4; i++) {
+            int nx = x + DX[i];
+            int ny = y + DY[i];
+    
+            if (!isValid(nx, ny)) continue;
+            if (testBoard[nx][ny] != opponent) continue;
+
+            SingleMove start = new SingleMove(nx, ny);
+            if (checked.contains(start)) continue;
+    
+            ChainResult enemyChain = floodFill(nx, ny, testBoard);
+            checked.addAll(enemyChain.chain);
+    
+            if (enemyChain.liberties.isEmpty()) {
+                metrics.capturedStones += enemyChain.chain.size();
+                for (SingleMove p : enemyChain.chain) {
+                    testBoard[p.getX()][p.getY()] = Color.NONE;
+                }
+            } else {
+                // Not captured, check how choked they are
+                if (enemyChain.liberties.size() < metrics.minOpponentLiberties) {
+                    metrics.minOpponentLiberties = enemyChain.liberties.size();
+                }
+            }
+        }
+        
+        // Check self liberties
+        ChainResult myChain = floodFill(x, y, testBoard);
+        if (myChain.liberties.isEmpty()) {
+            return metrics; // Suicide, isLegal remains false
+        }
+        metrics.selfLiberties = myChain.liberties.size();
+
+        // Ko check
+        if(lastMoveWasKoBeat && compare_grids(testBoard, koGrid)){
+            return metrics; // Ko, isLegal remains false
+        }
+
+        metrics.isLegal = true;
+        return metrics;
+    }
+
+    /**
+     * Helper to get captured stones count for a move (simulation)
+     * @param x
+     * @param y
+     * @param side
+     * @return number of captured stones, or -1 if move is illegal/suicide
+     */
+    public int getCapturedStoneCount(int x, int y, Color side) {
+        if (!isValid(x, y)) return -1;
+        if (board.returnCurrentState()[x][y] != Color.NONE) return -1;
+        
+        Color[][] testBoard = new Color[size][size];
+        for(int i=0;i<size;i++){
+            for(int j=0;j<size;j++){
+                testBoard[i][j]=this.board.returnCurrentState()[i][j];
+            }
+        }
+        testBoard[x][y] = side;
+
+        Color opponent = (side == Color.BLACK) ? Color.WHITE : Color.BLACK;
+        Set<SingleMove> checked = new HashSet<>();
+        int captured = 0;
+
+        for (int i = 0; i < 4; i++) {
+            int nx = x + DX[i];
+            int ny = y + DY[i];
+    
+            if (!isValid(nx, ny)) continue;
+            if (testBoard[nx][ny] != opponent) continue;
+
+            SingleMove start = new SingleMove(nx, ny);
+            if (checked.contains(start)) continue;
+    
+            ChainResult enemyChain = floodFill(nx, ny, testBoard);
+            checked.addAll(enemyChain.chain);
+    
+            if (enemyChain.liberties.isEmpty()) {
+                captured += enemyChain.chain.size();
+                for (SingleMove p : enemyChain.chain) {
+                    testBoard[p.getX()][p.getY()] = Color.NONE;
+                }
+            }
+        }
+        
+        // Check suicide
+        ChainResult myChain = floodFill(x, y, testBoard);
+        if (myChain.liberties.isEmpty()) {
+            return -1; // Suicide
+        }
+
+        return captured;
+    }
 
     /**
      * Function makeMove that proceeds a single move from one player

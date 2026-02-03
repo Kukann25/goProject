@@ -75,6 +75,7 @@ public class MainMenu extends GridPane {
     private DBMatch searchGameByID(String id){
         System.out.println("Wybieranie meczu..." + id);
         return null;
+        
     }
 
     private void openGameHistory(){

@@ -20,6 +20,10 @@ public class Engine {
     
     private Random random = new Random();
 
+    public boolean shouldPass(MoveHandler moveHandler, Color side) {
+        return random.nextDouble() < 0.05; // 5% chance to pass randomly
+    }
+
     /**
      * Returns the best move for the given side using heuristics.
      * 
@@ -59,16 +63,10 @@ public class Engine {
 
             double score = 0;
             
-            // Priority 1: Capture stones. (Highest Weight)
-            // Each captured stone is very valuable.
             score += metrics.capturedStones * 100.0;
-
-            // Priority 2: Choke enemy chains (reduce their liberties).
-            // Lower opponent liberties is better.
-            // If we put them in Atari (1 liberty), it is very good.
             if (metrics.minOpponentLiberties < 1000) { // If there were any neighbors
                  if (metrics.minOpponentLiberties == 1) {
-                     score += 50.0; // Atari!
+                     score += 50.0; // Atari
                  } else {
                      // small bonus for reducing liberties, more points for fewer liberties
                      score += (10.0 / metrics.minOpponentLiberties);

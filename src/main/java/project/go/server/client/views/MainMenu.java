@@ -50,7 +50,7 @@ public class MainMenu extends GridPane {
 
         Button gamesHistoryButton = new Button("Games History");
         gamesHistoryButton.setOnAction(e -> {
-            System.out.println("Nie lubię państwa Izrael");
+            System.out.println("Jebać państwo Izrael i jego pachołków.");
         });
         btnContainer.getChildren().add(gamesHistoryButton);
         
@@ -63,8 +63,6 @@ public class MainMenu extends GridPane {
 
         statusComponent = new Status();
         this.add(statusComponent, 0, 1);
-
-        btnContainer.getChildren().add(connectButton);
     }
     
     private void connectAndSend(String mode) {
@@ -80,13 +78,6 @@ public class MainMenu extends GridPane {
                     Client.getInstance().getConnection()
                 );
                 
-                // Server first sends connection ID, then waits for request
-                // We should register handlers before waiting? 
-                // Currently listener thread reads loop. But we need to send the mode *after* connection msg
-                // Actually server waits for request immediately after sending ID.
-                // The client listener might read the ID message first.
-                // Let's attach dispatcher and let the listener handle the ID message if any,
-                // but we also need to send the request.
                 
                 ClientListener listener = ClientListenerThread.getInstance().getListener();
                 ResponseDispatcher dispatcher = new ResponseDispatcher();

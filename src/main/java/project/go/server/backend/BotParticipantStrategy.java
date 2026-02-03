@@ -23,9 +23,17 @@ public class BotParticipantStrategy implements MatchParticipantStrategy {
         // Check if it is bot's turn
         if (sharedState.getMatchState().isOngoing() && 
             sharedState.getMoveHandler().getBoard().getCurrentTurn() == botColor) {
-            
+
             // Add a small delay for realism
             if (System.currentTimeMillis() - lastMoveTime < 1000) return;
+
+             // If losing overwhelmingly, consider passing
+            if (engine.shouldPass(sharedState.getMoveHandler(), botColor)) {
+                sharedState.passTurn(botColor);
+                Logger.getInstance().log("BotStrategy", "Bot decided to pass due to losing position.");
+                lastMoveTime = System.currentTimeMillis();
+                return;
+            }
 
             // Generate move using Engine
             SingleMove bestMove = engine.returnBestMove(sharedState.getMoveHandler(), botColor);

@@ -55,9 +55,10 @@ public class Match implements Runnable {
     }
     
     // PvBot Match Constructor
-    public Match(ConnectedClient.Data player, boolean playerIsBlack) {
+    public Match(ConnectedClient.Data player, boolean playerIsBlack, MatchRepository matchDBRepository) {
         this.state = new MatchState();
         this.matchId = java.util.UUID.randomUUID().toString();
+        this.matchDBRepository = matchDBRepository;
         
         if (playerIsBlack) {
             this.black = new ClientData(player, Color.BLACK, matchId);

@@ -76,9 +76,7 @@ public class MatchPool {
             // Handle Bot Requests immediately
             for (ConnectedClient client : botClients) {
                  client.join(); // Mark as IN_MATCH
-                 // 50% chance to be Black or White
-                 boolean isBlack = Math.random() < 0.5;
-                 Match match = new Match(client.getClientData(), isBlack);
+                 Match match = new Match(client.getClientData(), true, matchDBRepository);
                  matches.put(match.getMatchId(), match);
                  matchPool.execute(new MatchRunWrapper(match, matches));
                  Logger.getInstance().log("MatchPool", "Started Player vs Bot match.");

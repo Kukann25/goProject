@@ -1,21 +1,18 @@
 package project.go.server.client;
 
 public enum Path {
-    HOME("/fxml/home.fxml", "home"),
-    LOBBY("/fxml/lobby.fxml", "lobby"),
-    GAME("/fxml/game.fxml", "game");
+    HOME("home"),
+    LOBBY("lobby"),
+    GAME("game"),
+    GAME_HISTORY("game_history"),
+    GAME_HISTORY_LIST("game_history_list");
 
-    private final String path;
     private final String name;
 
-    Path(String path, String name) {
-        this.path = path;
+    Path(String name) {
         this.name = name;
     }
 
-    public String getPath() {
-        return path;
-    }
 
     public String getName() {
         return name;

@@ -4,6 +4,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import project.go.server.client.views.Game;
+import project.go.server.client.views.GameHistory;
+import project.go.server.client.views.GameHistoryList;
 import project.go.server.client.views.MainMenu;
 
 public class Router {
@@ -29,7 +31,13 @@ public class Router {
                 break;
             case GAME:
                 node = new Game(primaryStage, (Game.Props) params[0]);
-                break;      
+                break;
+            case GAME_HISTORY_LIST:
+                node = new GameHistoryList(primaryStage);
+                break;
+            case GAME_HISTORY:
+                node = new GameHistory();
+                break;
             default:
                 node = new MainMenu();
         }

@@ -49,4 +49,15 @@ public class Board {
     public void setCurrentTurn(Color player){
         currentTurn = player;
     }
+
+    public Board copy() {
+        Board newBoard = new Board(this.boardSize);
+        newBoard.currentTurn = this.currentTurn;
+        for(int i=0; i<boardSize; i++){
+            for(int j=0; j<boardSize; j++){
+                newBoard.grid[i][j] = this.grid[i][j];
+            }
+        }
+        return newBoard;
+    }
 }
